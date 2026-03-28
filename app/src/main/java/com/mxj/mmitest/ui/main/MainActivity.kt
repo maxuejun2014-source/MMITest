@@ -4,14 +4,20 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.autotest.AutoTestActivity
@@ -55,64 +61,80 @@ fun MainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(32.dp))
+
         // 应用标题
         Text(
             text = "手机工厂测试",
             style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom = 16.dp)
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
         )
 
         Text(
             text = "MMITest",
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 48.dp)
+            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
         )
 
         // 测试项数量信息
-        Text(
-            text = "共 ${viewModel.totalTestCount} 项测试",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 48.dp)
+        Card(
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            modifier = Modifier.padding(vertical = 16.dp)
+        ) {
+            Text(
+                text = "共 ${viewModel.totalTestCount} 项测试",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 四个功能按钮卡片
+        MainMenuCard(
+            icon = Icons.Default.PlayArrow,
+            title = "自动测试",
+            description = "按顺序执行所有测试项，失败后继续",
+            backgroundColor = Color(0xFF2196F3),
+            onClick = onAutoTestClick
         )
 
-        // 四个功能按钮
-        MainMenuButton(
-            text = "自动测试",
-            description = "按顺序执行所有测试项",
-            backgroundColor = Color(0xFF2196F3), // 蓝色
-            onClick = onAutoTestClick,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Spacer(modifier = Modifier.height(12.dp))
 
-        MainMenuButton(
-            text = "单项测试",
+        MainMenuCard(
+            icon = Icons.Default.List,
+            title = "单项测试",
             description = "选择单个测试项进行测试",
-            backgroundColor = Color(0xFF4CAF50), // 绿色
-            onClick = onSingleTestClick,
-            modifier = Modifier.padding(bottom = 16.dp)
+            backgroundColor = Color(0xFF4CAF50),
+            onClick = onSingleTestClick
         )
 
-        MainMenuButton(
-            text = "测试结果",
-            description = "查看历史测试记录",
-            backgroundColor = Color(0xFFFF9800), // 橙色
-            onClick = onResultClick,
-            modifier = Modifier.padding(bottom = 16.dp)
+        Spacer(modifier = Modifier.height(12.dp))
+
+        MainMenuCard(
+            icon = Icons.Default.History,
+            title = "测试结果",
+            description = "查看历史测试记录和二维码",
+            backgroundColor = Color(0xFFFF9800),
+            onClick = onResultClick
         )
 
-        MainMenuButton(
-            text = "退出",
+        Spacer(modifier = Modifier.height(12.dp))
+
+        MainMenuCard(
+            icon = Icons.Default.ExitToApp,
+            title = "退出",
             description = "关闭应用程序",
-            backgroundColor = Color(0xFFF44336), // 红色
-            onClick = onExitClick,
-            modifier = Modifier.padding(bottom = 16.dp)
+            backgroundColor = Color(0xFFF44336),
+            onClick = onExitClick
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -124,43 +146,58 @@ fun MainScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
 /**
- * 主界面菜单按钮组件
+ * 主界面菜单卡片组件
+ * 优化的卡片式设计，带图标
  */
 @Composable
-fun MainMenuButton(
-    text: String,
+fun MainMenuCard(
+    icon: ImageVector,
+    title: String,
     description: String,
     backgroundColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Button(
+    Card(
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(100.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = backgroundColor
-        ),
-        shape = MaterialTheme.shapes.medium
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = Color.White
             )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.8f)
-            )
+
+            Spacer(modifier = Modifier.width(20.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
+            }
         }
     }
 }
