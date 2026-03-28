@@ -2,6 +2,23 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- 权限声明 -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USB_PERMISSION" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -11,17 +28,179 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MMITest">
+
+        <!-- 主界面 -->
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.main.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.MMITest">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- 单项测试界面 -->
+        <activity
+            android:name=".ui.singletest.SingleTestActivity"
+            android:exported="false"
+            android:label="单项测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <!-- 自动测试界面 -->
+        <activity
+            android:name=".ui.autotest.AutoTestActivity"
+            android:exported="false"
+            android:label="自动测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <!-- 测试结果界面 -->
+        <activity
+            android:name=".ui.result.ResultActivity"
+            android:exported="false"
+            android:label="测试结果"
+            android:theme="@style/Theme.MMITest" />
+
+        <!-- 测试项Activity -->
+        <activity
+            android:name=".ui.testitems.SimTestActivity"
+            android:exported="false"
+            android:label="SIM卡测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.StorageTestActivity"
+            android:exported="false"
+            android:label="存储测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.VibrationTestActivity"
+            android:exported="false"
+            android:label="震动测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.VersionTestActivity"
+            android:exported="false"
+            android:label="版本号测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.LcdTestActivity"
+            android:exported="false"
+            android:label="LCD测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.BacklightTestActivity"
+            android:exported="false"
+            android:label="背光测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.ButtonTestActivity"
+            android:exported="false"
+            android:label="按键测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.TpTestActivity"
+            android:exported="false"
+            android:label="TP测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.ChargingTestActivity"
+            android:exported="false"
+            android:label="充电测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.GravitySensorTestActivity"
+            android:exported="false"
+            android:label="重力传感器测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.RingtoneTestActivity"
+            android:exported="false"
+            android:label="铃声测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.AudioLoopbackTestActivity"
+            android:exported="false"
+            android:label="音频回环测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.EarpieceTestActivity"
+            android:exported="false"
+            android:label="听筒测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.HeadphoneTestActivity"
+            android:exported="false"
+            android:label="耳机回环测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.FmTestActivity"
+            android:exported="false"
+            android:label="FM测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.FrontCameraTestActivity"
+            android:exported="false"
+            android:label="前摄测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.RearCameraTestActivity"
+            android:exported="false"
+            android:label="后摄测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.PhoneTestActivity"
+            android:exported="false"
+            android:label="电话测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.WifiTestActivity"
+            android:exported="false"
+            android:label="WiFi测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.BluetoothTestActivity"
+            android:exported="false"
+            android:label="蓝牙测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.GpsTestActivity"
+            android:exported="false"
+            android:label="GPS测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.OtgTestActivity"
+            android:exported="false"
+            android:label="OTG测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
+            android:name=".ui.testitems.ProximitySensorTestActivity"
+            android:exported="false"
+            android:label="距离传感器测试"
+            android:theme="@style/Theme.MMITest" />
+
     </application>
 
 </manifest>
