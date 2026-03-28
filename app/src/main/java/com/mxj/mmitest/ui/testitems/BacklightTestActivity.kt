@@ -2,61 +2,75 @@ package com.mxj.mmitest.ui.testitems
 
 import android.os.Bundle
 import android.view.WindowManager
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
-/**
- * 背光测试Activity
- */
 class BacklightTestActivity : BaseActivity() {
-
     private val testName = "背光测试"
     private val timeoutSeconds = 30
+    private var originalBrightness: Float = -1f
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 保存原始亮度
+        originalBrightness = window.attributes.screenBrightness
+        
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
-            var brightness by remember { mutableStateOf(50) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
-
+            var currentBrightness by remember { mutableFloatStateOf(0.1f) }
+            
             TestItemScreen(
                 testName = testName,
-                testDescription = "屏幕背光调节测试\n\n" +
-                        "当前亮度: $brightness%\n\n" +
-                        "操作步骤：\n" +
-                        "1. 观察屏幕亮度变化\n" +
-                        "2. 点击 +/- 调整亮度\n" +
-                        "3. 点击PASS或FAIL按钮",
+                testDescription = "屏幕亮度自动调节测试\n\n屏幕亮度将在 10% 和 100% 之间循环切换\n点击PASS表示正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
                 onPass = { finish() },
                 onFail = { finish() }
             )
-
+            
             if (showTimeoutDialog) {
                 TimeoutDialog(
                     remainingSeconds = remainingSeconds,
-                    onContinueWait = { remainingSeconds = timeoutSeconds; showTimeoutDialog = false },
+                    onContinueWait = { 
+                        remainingSeconds = timeoutSeconds
+                        showTimeoutDialog = false 
+                    },
                     onMarkFailed = { finish() },
                     onSkip = { finish() }
                 )
             }
-
+            
+            LaunchedEffect(currentBrightness) {
+                val params = window.attributes
+                params.screenBrightness = currentBrightness
+                window.attributes = params
+                
+                delay(2000)
+                currentBrightness = if (currentBrightness < 0.5f) 1.0f else 0.1f
+            }
+            
             LaunchedEffect(Unit) {
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
+                while (remainingSeconds > 0) {
                     delay(1000)
+                    remainingSeconds--
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        // 恢复原始亮度
+        val params = window.attributes
+        params.screenBrightness = originalBrightness
+        window.attributes = params
+        super.onDestroy()
     }
 }

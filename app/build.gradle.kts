@@ -1,3 +1,5 @@
+
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -52,12 +54,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Room数据库依赖（第五阶段使用）
-    implementation(libs.androidx.room)
+    // Room数据库依赖（已修复：引用具体的 .runtime 库，避免直接引用组名导致的报错）
+    implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     annotationProcessor(libs.androidx.room.compiler)
 
-    // ZXing二维码库（用于二维码显示）
+    // ZXing二维码库
     implementation(libs.zxing)
 
     testImplementation(libs.junit)

@@ -2,6 +2,7 @@ package com.mxj.mmitest.ui.testitems
 
 import android.os.Bundle
 import android.media.MediaPlayer
+import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,7 +20,7 @@ class RingtoneTestActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
             TestItemScreen(
                 testName = testName,
@@ -37,10 +38,12 @@ class RingtoneTestActivity : BaseActivity() {
                 )
             }
             LaunchedEffect(Unit) {
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
+                while (remainingSeconds > 0) {
                     delay(1000)
+                    remainingSeconds--
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
             }
         }

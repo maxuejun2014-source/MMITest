@@ -1,16 +1,13 @@
 package com.mxj.mmitest.ui.testitems
 
-import android.os.Bundle
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import android.os.Bundle
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import com.mxj.mmitest.ui.components.TimeoutDialog
@@ -21,58 +18,67 @@ class ProximitySensorTestActivity : BaseActivity(), SensorEventListener {
     private val timeoutSeconds = 20
     private var sensorManager: SensorManager? = null
     private var proximitySensor: Sensor? = null
-    private var maxRange: Float = 5f
+    
+    private var distanceState = mutableStateOf("检测中...")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         proximitySensor = sensorManager?.getDefaultSensor(Sensor.TYPE_PROXIMITY)
-        maxRange = proximitySensor?.maximumRange ?: 5f
-
+        
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
-            var sensorValue by remember { mutableStateOf("检测中...") }
-
+            val distance by remember { distanceState }
+            
             TestItemScreen(
                 testName = testName,
-                testDescription = "距离传感器功能测试\n\n当前值: $sensorValue\n\n用手遮挡屏幕上方的传感器区域，观察数值变化",
+                testDescription = "距离传感器测试\n\n状态: $distance\n\n请用手遮挡屏幕上方传感器查看状态变化",
                 remainingSeconds = remainingSeconds,
                 onPass = { finish() },
                 onFail = { finish() }
             )
-
+            
             if (showTimeoutDialog) {
                 TimeoutDialog(
                     remainingSeconds = remainingSeconds,
-                    onContinueWait = { remainingSeconds = timeoutSeconds; showTimeoutDialog = false },
+                    onContinueWait = { 
+                        remainingSeconds = timeoutSeconds
+                        showTimeoutDialog = false 
+                    },
                     onMarkFailed = { finish() },
                     onSkip = { finish() }
                 )
             }
-
+            
             LaunchedEffect(Unit) {
-                sensorManager?.registerListener(
-                    this@ProximitySensorTestActivity,
-                    proximitySensor,
-                    SensorManager.SENSOR_DELAY_NORMAL
-                )
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
+                while (remainingSeconds > 0) {
                     delay(1000)
+                    remainingSeconds--
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
-                sensorManager?.unregisterListener(this@ProximitySensorTestActivity)
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        proximitySensor?.let {
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager?.unregisterListener(this)
+    }
+
     override fun onSensorChanged(event: SensorEvent?) {
-        event?.let {
-            if (it.sensor.type == Sensor.TYPE_PROXIMITY) {
-                val value = it.values[0]
-                val status = if (value >= maxRange) "远离" else "接近"
-            }
+        if (event?.sensor?.type == Sensor.TYPE_PROXIMITY) {
+            val dist = event.values[0]
+            distanceState.value = if (dist < (proximitySensor?.maximumRange ?: 5f)) "已遮挡 (近)" else "未遮挡 (远)"
         }
     }
 

@@ -1,77 +1,69 @@
 package com.mxj.mmitest.ui.testitems
 
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
-import android.content.Context
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
-/**
- * 震动测试Activity
- */
 class VibrationTestActivity : BaseActivity() {
-
     private val testName = "震动测试"
-    private val timeoutSeconds = 15
-
+    private val timeoutSeconds = 20
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
-            val context = LocalContext.current
-
-            // 测试震动
-            LaunchedEffect(Unit) {
-                val vibrator = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-                    vibratorManager.defaultVibrator
-                } else {
-                    @Suppress("DEPRECATION")
-                    context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-                }
-                vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
-            }
-
+            
             TestItemScreen(
                 testName = testName,
-                testDescription = "测试振动马达功能\n\n" +
-                        "操作步骤：\n" +
-                        "1. 感受震动是否正常\n" +
-                        "2. 检查震动强度\n" +
-                        "3. 点击PASS或FAIL按钮",
+                testDescription = "震动功能测试\n\n设备将以间歇方式震动\n点击PASS表示能感觉到震动，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
                 onPass = { finish() },
                 onFail = { finish() }
             )
-
+            
             if (showTimeoutDialog) {
                 TimeoutDialog(
                     remainingSeconds = remainingSeconds,
-                    onContinueWait = {
+                    onContinueWait = { 
                         remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false
+                        showTimeoutDialog = false 
                     },
                     onMarkFailed = { finish() },
                     onSkip = { finish() }
                 )
             }
-
+            
             LaunchedEffect(Unit) {
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
+                val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+                } else {
+                    @Suppress("DEPRECATION")
+                    getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+                }
+
+                while (remainingSeconds > 0) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE))
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(500)
+                    }
+                    
                     delay(1000)
+                    remainingSeconds--
+                    
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
             }
         }

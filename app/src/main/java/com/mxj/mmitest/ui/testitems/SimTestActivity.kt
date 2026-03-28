@@ -2,16 +2,9 @@ package com.mxj.mmitest.ui.testitems
 
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.dp
-import com.mxj.mmitest.config.TestConfig
 import com.mxj.mmitest.ui.base.BaseActivity
-import com.mxj.mmitest.ui.components.TestResultButtons
+import com.mxj.mmitest.ui.components.TestItemScreen
 import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
@@ -20,7 +13,6 @@ import kotlinx.coroutines.delay
  */
 class SimTestActivity : BaseActivity() {
 
-    private val testItemId = 1
     private val testName = "SIM卡测试"
     private val timeoutSeconds = 15
 
@@ -28,7 +20,7 @@ class SimTestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
 
             TestItemScreen(
@@ -39,14 +31,8 @@ class SimTestActivity : BaseActivity() {
                         "2. 检查信号强度\n" +
                         "3. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
-                onPass = {
-                    // TODO: 保存测试结果
-                    finish()
-                },
-                onFail = {
-                    // TODO: 保存测试结果
-                    finish()
-                }
+                onPass = { finish() },
+                onFail = { finish() }
             )
 
             if (showTimeoutDialog) {
@@ -56,26 +42,19 @@ class SimTestActivity : BaseActivity() {
                         remainingSeconds = timeoutSeconds
                         showTimeoutDialog = false
                     },
-                    onMarkFailed = {
-                        // TODO: 保存测试结果（超时失败）
-                        finish()
-                    },
-                    onSkip = {
-                        // TODO: 保存测试结果（跳过）
-                        finish()
-                    }
+                    onMarkFailed = { finish() },
+                    onSkip = { finish() }
                 )
             }
 
             // 倒计时逻辑
             LaunchedEffect(Unit) {
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) {
-                        showTimeoutDialog = true
-                        break
-                    }
+                while (remainingSeconds > 0) {
                     delay(1000)
+                    remainingSeconds--
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
             }
         }

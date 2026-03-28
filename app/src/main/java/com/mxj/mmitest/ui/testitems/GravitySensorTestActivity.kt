@@ -1,16 +1,13 @@
 package com.mxj.mmitest.ui.testitems
 
-import android.os.Bundle
+import android.content.Context
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
+import android.os.Bundle
+import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import com.mxj.mmitest.ui.components.TimeoutDialog
@@ -21,38 +18,72 @@ class GravitySensorTestActivity : BaseActivity(), SensorEventListener {
     private val timeoutSeconds = 20
     private var sensorManager: SensorManager? = null
     private var gravitySensor: Sensor? = null
+    
+    // 使用 Compose State 来同步传感器数据
+    private var sensorDataState = mutableStateOf("检测中...")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         gravitySensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+        
         setContent {
-            var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var showTimeoutDialog by remember { mutableStateOf(false) }
-            var sensorData by remember { mutableStateOf("检测中...") }
+            val sensorData by remember { sensorDataState }
+            
             TestItemScreen(
                 testName = testName,
-                testDescription = "加速度计功能测试\n\n$sensorData\n\n请晃动设备观察数值变化",
+                testDescription = "加速度计功能测试\n\n数据: $sensorData\n\n请晃动设备观察数值变化",
                 remainingSeconds = remainingSeconds,
                 onPass = { finish() },
                 onFail = { finish() }
             )
+            
             if (showTimeoutDialog) {
                 TimeoutDialog(
                     remainingSeconds = remainingSeconds,
-                    onContinueWait = { remainingSeconds = timeoutSeconds; showTimeoutDialog = false },
+                    onContinueWait = { 
+                        remainingSeconds = timeoutSeconds
+                        showTimeoutDialog = false 
+                    },
                     onMarkFailed = { finish() },
                     onSkip = { finish() }
                 )
             }
+            
             LaunchedEffect(Unit) {
-                for (i in timeoutSeconds downTo 0) {
-                    remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
+                while (remainingSeconds > 0) {
                     delay(1000)
+                    remainingSeconds--
+                    if (remainingSeconds == 0) {
+                        showTimeoutDialog = true
+                    }
                 }
             }
         }
     }
-    override fun onSensorChanged(event: SensorEvent?) {}
+
+    override fun onResume() {
+        super.onResume()
+        gravitySensor?.let {
+            sensorManager?.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager?.unregisterListener(this)
+    }
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
+            val x = event.values[0]
+            val y = event.values[1]
+            val z = event.values[2]
+            sensorDataState.value = String.format("X: %.2f, Y: %.2f, Z: %.2f", x, y, z)
+        }
+    }
+
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 }
