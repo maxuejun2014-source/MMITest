@@ -7,30 +7,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.QrCode
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mxj.mmitest.data.local.TestSessionEntity
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.mxj.mmitest.domain.model.TestResultSummary
 
 /**
- * 测试结果界面Compose屏幕
+ * 测试结果界面
+ * 包含历史记录和二维码显示两个Tab页
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,42 +33,37 @@ fun ResultScreen(
     viewModel: ResultViewModel,
     onBackClick: () -> Unit
 ) {
-    val currentTab by viewModel.currentTab.collectAsState()
     val sessions by viewModel.sessions.collectAsState()
+    val currentTab by viewModel.currentTab.collectAsState()
+    val selectedSessionId by viewModel.selectedSessionId.collectAsState()
     val selectedSummary by viewModel.selectedSummary.collectAsState()
     val qrCodeBitmap by viewModel.qrCodeBitmap.collectAsState()
-    val selectedSessionId by viewModel.selectedSessionId.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("测试结果") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                ),
-                actions = {
-                    if (currentTab == ResultTab.HISTORY && sessions.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.deleteAllSessions() }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = "删除全部"
-                            )
-                        }
+                navigationIcon = {
+                    TextButton(onClick = onBackClick) {
+                        Text("返回", color = MaterialTheme.colorScheme.onPrimary)
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
-    ) { padding ->
+    ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(paddingValues)
         ) {
-            // Tab选择器
+            // Tab切换
             TabRow(
-                selectedTabIndex = currentTab.ordinal,
-                modifier = Modifier.fillMaxWidth()
+                selectedTabIndex = if (currentTab == ResultTab.HISTORY) 0 else 1
             ) {
                 Tab(
                     selected = currentTab == ResultTab.HISTORY,
@@ -89,23 +79,29 @@ fun ResultScreen(
                 )
             }
 
-            // 内容区
+            // 内容区域
             when (currentTab) {
                 ResultTab.HISTORY -> {
                     HistoryTab(
                         sessions = sessions,
                         selectedSessionId = selectedSessionId,
                         isLoading = isLoading,
-                        onSessionClick = { viewModel.selectSession(it.sessionId) },
-                        onDeleteClick = { viewModel.deleteSession(it.sessionId) }
+                        onSessionClick = { session ->
+                            viewModel.selectSession(session.sessionId)
+                        },
+                        onDeleteClick = { session ->
+                            viewModel.deleteSession(session.sessionId)
+                        },
+                        onDeleteAllClick = {
+                            viewModel.deleteAllSessions()
+                        }
                     )
                 }
                 ResultTab.QR_CODE -> {
                     QrCodeTab(
                         summary = selectedSummary,
                         qrCodeBitmap = qrCodeBitmap,
-                        resultText = viewModel.getResultText(),
-                        hasSelectedSession = selectedSessionId != null
+                        resultText = viewModel.getResultText()
                     )
                 }
             }
@@ -114,7 +110,7 @@ fun ResultScreen(
 }
 
 /**
- * 历史记录Tab
+ * 历史记录Tab页
  */
 @Composable
 private fun HistoryTab(
@@ -122,144 +118,165 @@ private fun HistoryTab(
     selectedSessionId: String?,
     isLoading: Boolean,
     onSessionClick: (TestSessionEntity) -> Unit,
-    onDeleteClick: (TestSessionEntity) -> Unit
+    onDeleteClick: (TestSessionEntity) -> Unit,
+    onDeleteAllClick: () -> Unit
 ) {
-    if (isLoading) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+    Column(modifier = Modifier.fillMaxSize()) {
+        // 工具栏
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.End
         ) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    if (sessions.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "暂无历史记录",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = "请先运行自动测试",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                )
+            if (sessions.isNotEmpty()) {
+                TextButton(
+                    onClick = onDeleteAllClick,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("清除全部")
+                }
             }
         }
-        return
-    }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(sessions) { session ->
-            SessionCard(
-                session = session,
-                isSelected = session.sessionId == selectedSessionId,
-                onClick = { onSessionClick(session) },
-                onDeleteClick = { onDeleteClick(session) }
-            )
+        // 加载状态
+        if (isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else if (sessions.isEmpty()) {
+            // 空状态
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "暂无测试记录",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        } else {
+            // 记录列表
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(sessions, key = { it.sessionId }) { session ->
+                    SessionItem(
+                        session = session,
+                        isSelected = session.sessionId == selectedSessionId,
+                        onClick = { onSessionClick(session) },
+                        onDeleteClick = { onDeleteClick(session) }
+                    )
+                }
+            }
         }
     }
 }
 
 /**
- * 会话卡片
+ * 会话列表项
  */
 @Composable
-private fun SessionCard(
+private fun SessionItem(
     session: TestSessionEntity,
     isSelected: Boolean,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()) }
+    val backgroundColor = if (isSelected) {
+        MaterialTheme.colorScheme.primaryContainer
+    } else {
+        MaterialTheme.colorScheme.surface
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surface
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 4.dp else 2.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = session.deviceModel,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = session.deviceManufacturer,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = dateFormat.format(Date(session.startTime)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = session.deviceModel,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = session.deviceManufacturer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    )
+                }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // 结果统计
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                TextButton(
+                    onClick = onDeleteClick,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    ResultChip(
-                        label = "通过",
-                        count = session.passedCount,
-                        color = Color(0xFF4CAF50)
-                    )
-                    ResultChip(
-                        label = "失败",
-                        count = session.failedCount,
-                        color = Color(0xFFF44336)
-                    )
-                    ResultChip(
-                        label = "跳过",
-                        count = session.skippedCount,
-                        color = Color(0xFFFF9800)
-                    )
+                    Text("删除")
                 }
             }
 
-            IconButton(onClick = onDeleteClick) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "删除",
-                    tint = MaterialTheme.colorScheme.error
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 测试时间
+            Text(
+                text = formatTime(session.startTime),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 结果统计
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                ResultCount(
+                    label = "通过",
+                    count = session.passedCount,
+                    color = Color(0xFF4CAF50)
+                )
+                ResultCount(
+                    label = "失败",
+                    count = session.failedCount,
+                    color = Color(0xFFF44336)
+                )
+                ResultCount(
+                    label = "跳过",
+                    count = session.skippedCount,
+                    color = Color(0xFFFF9800)
+                )
+                ResultCount(
+                    label = "总计",
+                    count = session.totalCount,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -267,248 +284,201 @@ private fun SessionCard(
 }
 
 /**
- * 结果标签
+ * 结果计数组件
  */
 @Composable
-private fun ResultChip(
+private fun ResultCount(
     label: String,
     count: Int,
     color: Color
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(color)
-        )
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = "$count",
-            style = MaterialTheme.typography.bodyMedium,
+            text = count.toString(),
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
     }
 }
 
 /**
- * 二维码Tab
+ * 二维码Tab页
  */
 @Composable
 private fun QrCodeTab(
-    summary: com.mxj.mmitest.domain.model.TestResultSummary?,
+    summary: TestResultSummary?,
     qrCodeBitmap: Bitmap?,
-    resultText: String,
-    hasSelectedSession: Boolean
+    resultText: String
 ) {
-    if (!hasSelectedSession || summary == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.QrCode,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "请先选择一条历史记录",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-        return
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // 测试汇总信息
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "测试汇总",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                SummaryRow("设备型号", summary.model)
-                SummaryRow("设备厂商", summary.manufacturer)
-                SummaryRow("测试时间", summary.testDate)
-                SummaryRow("测试员", summary.operator)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                HorizontalDivider()
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // 大字显示统计
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    BigStatItem(
-                        label = "通过",
-                        count = summary.summary.passed,
-                        total = summary.summary.total,
-                        color = Color(0xFF4CAF50)
-                    )
-                    BigStatItem(
-                        label = "失败",
-                        count = summary.summary.failed,
-                        total = summary.summary.total,
-                        color = Color(0xFFF44336)
-                    )
-                    BigStatItem(
-                        label = "跳过",
-                        count = summary.summary.skipped,
-                        total = summary.summary.total,
-                        color = Color(0xFFFF9800)
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 二维码显示
-        Card(
-            modifier = Modifier.size(280.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
-        ) {
+        if (summary == null) {
+            // 未选择会话
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                if (qrCodeBitmap != null) {
-                    Image(
-                        bitmap = qrCodeBitmap.asImageBitmap(),
-                        contentDescription = "测试结果二维码",
-                        modifier = Modifier.fillMaxSize()
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.QrCode,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                     )
-                } else {
-                    CircularProgressIndicator()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "请先在历史记录中选择一条测试结果",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            // 显示测试汇总信息
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "设备信息",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("型号: ${summary.model}")
+                    Text("厂商: ${summary.manufacturer}")
+                    Text("测试时间: ${summary.testDate}")
+                    Text("测试员: ${summary.operator}")
+                    Text("应用版本: ${summary.appVersion}")
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 测试结果汇总
+                    Text(
+                        text = "测试结果",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${summary.summary.passed}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50)
+                            )
+                            Text("通过", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${summary.summary.failed}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF44336)
+                            )
+                            Text("失败", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${summary.summary.skipped}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF9800)
+                            )
+                            Text("跳过", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = "${summary.summary.total}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text("总计", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 二维码显示
+            Card(
+                modifier = Modifier.size(280.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (qrCodeBitmap != null) {
+                        Image(
+                            bitmap = qrCodeBitmap.asImageBitmap(),
+                            contentDescription = "测试结果二维码",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "扫描二维码获取完整测试报告",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 详细结果文本
+            Card(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "详细结果",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = resultText,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "扫描二维码查看完整测试结果",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // 详细结果文本
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF1E1E1E)
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = resultText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFE0E0E0),
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                )
-            }
-        }
     }
 }
 
 /**
- * 汇总行
+ * 格式化时间戳
  */
-@Composable
-private fun SummaryRow(
-    label: String,
-    value: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-/**
- * 大号统计项
- */
-@Composable
-private fun BigStatItem(
-    label: String,
-    count: Int,
-    total: Int,
-    color: Color
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold,
-            color = color
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = "/$total",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-        )
-    }
+private fun formatTime(timestamp: Long): String {
+    val sdf = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+    return sdf.format(java.util.Date(timestamp))
 }
