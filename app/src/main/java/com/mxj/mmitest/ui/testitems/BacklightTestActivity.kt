@@ -28,11 +28,13 @@ class BacklightTestActivity : BaseActivity() {
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var currentBrightness by remember { mutableFloatStateOf(0.1f) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "屏幕亮度自动调节测试\n\n屏幕亮度将在 10% 和 100% 之间循环切换\n点击PASS表示正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

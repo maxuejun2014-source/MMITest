@@ -22,6 +22,7 @@ class VersionTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             val versionInfo = "Model: ${Build.MODEL}\n" +
                     "Brand: ${Build.BRAND}\n" +
@@ -32,6 +33,7 @@ class VersionTestActivity : BaseActivity() {
                 testName = testName,
                 testDescription = "系统版本信息核对\n\n$versionInfo\n\n核对无误后请点击PASS",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

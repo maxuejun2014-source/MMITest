@@ -37,6 +37,7 @@ class LcdTestActivity : BaseActivity() {
         setContent {
             var currentColorIndex by remember { mutableStateOf(0) }
             var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             Box(
                 modifier = Modifier
@@ -72,7 +73,8 @@ class LcdTestActivity : BaseActivity() {
 
                     TestResultButtons(
                         onPass = { saveAndFinish(true) },
-                        onFail = { saveAndFinish(false) }
+                        onFail = { saveAndFinish(false) },
+                        passEnabled = passEnabled
                     )
                 }
             }

@@ -22,11 +22,13 @@ class FmTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "FM收音机功能测试\n\n注意：部分设备不支持FM\n插入耳机作为天线后测试\n点击PASS表示FM正常工作，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

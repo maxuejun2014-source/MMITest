@@ -21,11 +21,13 @@ class HeadphoneTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "耳机插孔功能测试\n\n请插入耳机并确认左右声道正常\n点击PASS表示正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

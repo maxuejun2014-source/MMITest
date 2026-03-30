@@ -24,11 +24,13 @@ class ChargingTestActivity : BaseActivity() {
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             var batteryStatus by remember { mutableStateOf("检测中...") }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "充电接口和充电状态测试\n\n$batteryStatus\n\n请连接充电器后点击PASS或FAIL",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

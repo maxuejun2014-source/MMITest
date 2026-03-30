@@ -21,11 +21,13 @@ class GpsTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "GPS定位功能测试\n\n请在室外或窗口尝试定位\n点击PASS表示能搜到卫星或定位正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

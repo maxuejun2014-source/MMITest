@@ -22,10 +22,12 @@ class TpTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
             TestItemScreen(
                 testName = testName,
                 testDescription = "触摸屏测试\n\n操作步骤：\n1. 在屏幕上滑动\n2. 点击不同区域\n3. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

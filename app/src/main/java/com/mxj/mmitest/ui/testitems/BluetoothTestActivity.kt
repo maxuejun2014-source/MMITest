@@ -22,11 +22,13 @@ class BluetoothTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "检测附近可用蓝牙设备\n\n请确认蓝牙已开启\n点击PASS表示蓝牙功能正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

@@ -21,11 +21,13 @@ class OtgTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "OTG功能测试\n\n请连接OTG设备（如U盘）\n点击PASS表示能识别设备，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

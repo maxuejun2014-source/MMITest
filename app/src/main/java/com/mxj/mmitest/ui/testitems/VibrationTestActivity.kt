@@ -26,13 +26,15 @@ class VibrationTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "震动功能测试\n\n设备将以间歇方式震动\n点击PASS表示能感觉到震动，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
                 onPass = { saveAndFinish(true) },
-                onFail = { saveAndFinish(false) }
+                onFail = { saveAndFinish(false) },
+                passEnabled = passEnabled
             )
 
             LaunchedEffect(Unit) {

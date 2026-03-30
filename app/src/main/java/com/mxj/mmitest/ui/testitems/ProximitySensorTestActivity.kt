@@ -34,11 +34,13 @@ class ProximitySensorTestActivity : BaseActivity(), SensorEventListener {
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             val distance by remember { distanceState }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "距离传感器测试\n\n状态: $distance\n\n请用手遮挡屏幕上方传感器查看状态变化",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

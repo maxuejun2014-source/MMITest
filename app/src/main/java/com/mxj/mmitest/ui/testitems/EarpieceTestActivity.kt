@@ -22,10 +22,12 @@ class EarpieceTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
             TestItemScreen(
                 testName = testName,
                 testDescription = "听筒功能测试\n\n将耳朵贴近听筒位置\n点击PASS表示声音正常，FAIL表示无声或异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

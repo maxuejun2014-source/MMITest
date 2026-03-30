@@ -21,11 +21,13 @@ class WifiTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "检测附近可用WIFI网络\n\n请确认WIFI已开启\n点击PASS表示WIFI功能正常，FAIL表示异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

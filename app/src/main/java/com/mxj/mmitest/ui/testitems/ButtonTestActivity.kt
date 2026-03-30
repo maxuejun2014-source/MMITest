@@ -26,6 +26,7 @@ class ButtonTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
             TestItemScreen(
                 testName = testName,
                 testDescription = "物理按键和虚拟按键测试\n\n" +
@@ -35,6 +36,7 @@ class ButtonTestActivity : BaseActivity() {
                         "3. 测试电源键\n" +
                         "4. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

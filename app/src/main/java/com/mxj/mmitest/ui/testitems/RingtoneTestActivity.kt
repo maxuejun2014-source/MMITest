@@ -27,10 +27,12 @@ class RingtoneTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
             TestItemScreen(
                 testName = testName,
                 testDescription = "扬声器播放铃声测试\n\n请注意听扬声器声音\n点击PASS表示声音正常，FAIL表示无声或异常",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

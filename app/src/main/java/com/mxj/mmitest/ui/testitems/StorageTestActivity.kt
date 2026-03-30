@@ -25,6 +25,7 @@ class StorageTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
@@ -34,6 +35,7 @@ class StorageTestActivity : BaseActivity() {
                         "2. 检查SD卡是否存在（如有）\n" +
                         "3. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

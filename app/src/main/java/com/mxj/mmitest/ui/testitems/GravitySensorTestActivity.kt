@@ -35,11 +35,13 @@ class GravitySensorTestActivity : BaseActivity(), SensorEventListener {
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
             val sensorData by remember { sensorDataState }
+            var passEnabled by remember { mutableStateOf(true) }
 
             TestItemScreen(
                 testName = testName,
                 testDescription = "加速度计功能测试\n\n数据: $sensorData\n\n请晃动设备观察数值变化",
                 remainingSeconds = remainingSeconds,
+                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
                 onFail = { saveAndFinish(false) }
             )

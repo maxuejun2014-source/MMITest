@@ -27,6 +27,7 @@ class SimTestActivity : BaseActivity() {
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
+            var passEnabled by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
@@ -37,7 +38,8 @@ class SimTestActivity : BaseActivity() {
                         "3. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
                 onPass = { saveAndFinish(true) },
-                onFail = { saveAndFinish(false) }
+                onFail = { saveAndFinish(false) },
+                passEnabled = passEnabled
             )
 
             // 倒计时逻辑 - 超时直接finish，不弹框
