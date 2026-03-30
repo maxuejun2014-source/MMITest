@@ -86,7 +86,8 @@ class StorageTestActivity : BaseActivity() {
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var passEnabled by remember { mutableStateOf(true) }
+            // 未检测到外置SD卡时，PASS按钮置灰不可点击
+            var passEnabled by remember { mutableStateOf(removableSdCard != null) }
 
             TestItemScreen(
                 testName = testName,
