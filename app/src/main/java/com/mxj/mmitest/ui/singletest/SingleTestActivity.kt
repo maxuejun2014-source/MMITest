@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -149,7 +150,7 @@ private fun TestItemRow(
                         MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
                 .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 14.dp),
+                .padding(horizontal = 26.dp, vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -157,6 +158,7 @@ private fun TestItemRow(
             Text(
                 text = testItem.name,
                 style = MaterialTheme.typography.bodyLarge,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
                 color = if (isEnabled)
                     Color(0xFF333333)
@@ -165,15 +167,16 @@ private fun TestItemRow(
                 modifier = Modifier.weight(1f)
             )
 
-            // 右侧：测试状态（无箭头）
+            // 右侧：测试状态（带符号）
             Text(
                 text = when (status) {
-                    TestStatus.NOT_TESTED -> "NOT TESTED"
-                    TestStatus.PASSED -> "PASSED"
-                    TestStatus.FAILED -> "FAILED"
-                    else -> "NOT TESTED"
+                    TestStatus.NOT_TESTED -> "⚪ NOT TESTED"
+                    TestStatus.PASSED -> "✅ PASSED"
+                    TestStatus.FAILED -> "❌ FAILED"
+                    else -> "⚪ NOT TESTED"
                 },
                 style = MaterialTheme.typography.bodyMedium,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 color = statusColor
             )
@@ -182,7 +185,8 @@ private fun TestItemRow(
         // 分隔线
         HorizontalDivider(
             thickness = 1.dp,
-            color = Color(0xFFDADADA)
+            color = Color(0xFFDADADA),
+            modifier = Modifier.padding(horizontal = 12.dp)
         )
     }
 }
