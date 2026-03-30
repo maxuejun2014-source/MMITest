@@ -74,15 +74,29 @@ class TpTestActivity : BaseActivity() {
 
             // 触摸更新函数
             val updateCell: (Offset, Float, Float) -> Unit = { offset, canvasWidth, canvasHeight ->
-                val marginX = with(density) { 40.dp.toPx() }
-                val marginY = with(density) { 120.dp.toPx() }
-                val availableWidth = canvasWidth - marginX * 2
-                val availableHeight = canvasHeight - marginY * 2 - with(density) { 80.dp.toPx() }
-                val cellWidth = availableWidth / gridCols
-                val cellHeight = availableHeight / gridRows
+                val headerHeight = with(density) { 100.dp.toPx() }
+                val footerHeight = with(density) { 80.dp.toPx() }
+                val gapRatio = 0.25f // 间隙比例为方格边长的25%
 
-                val col = ((offset.x - marginX) / cellWidth).toInt()
-                val row = ((offset.y - marginY) / cellHeight).toInt()
+                val availableWidth = canvasWidth
+                val availableHeight = canvasHeight - headerHeight - footerHeight
+
+                // 计算方格边长（使用短边）
+                val cellSizeByWidth = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
+                val cellSizeByHeight = availableHeight / (gridRows + (gridRows - 1) * gapRatio)
+                val cellSize = minOf(cellSizeByWidth, cellSizeByHeight)
+
+                // 实际间隙大小
+                val gapSize = cellSize * gapRatio
+
+                // 起始偏移（居中）
+                val totalGridWidth = gridCols * cellSize + (gridCols - 1) * gapSize
+                val totalGridHeight = gridRows * cellSize + (gridRows - 1) * gapSize
+                val startX = (canvasWidth - totalGridWidth) / 2
+                val startY = headerHeight + (availableHeight - totalGridHeight) / 2
+
+                val col = ((offset.x - startX) / (cellSize + gapSize)).toInt()
+                val row = ((offset.y - startY) / (cellSize + gapSize)).toInt()
 
                 if (row in 0 until gridRows && col in 0 until gridCols) {
                     filledCells = filledCells + Pair(row, col)
@@ -94,13 +108,28 @@ class TpTestActivity : BaseActivity() {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
 
-                    val marginX = with(density) { 40.dp.toPx() }
-                    val marginY = with(density) { 120.dp.toPx() }
-                    val availableWidth = canvasWidth - marginX * 2
-                    val availableHeight = canvasHeight - marginY * 2 - with(density) { 80.dp.toPx() }
-                    val cellWidth = availableWidth / gridCols
-                    val cellHeight = availableHeight / gridRows
+                    val headerHeight = with(density) { 100.dp.toPx() }
+                    val footerHeight = with(density) { 80.dp.toPx() }
+                    val gapRatio = 0.25f
 
+                    val availableWidth = canvasWidth
+                    val availableHeight = canvasHeight - headerHeight - footerHeight
+
+                    // 计算方格边长（正方形，使用短边）
+                    val cellSizeByWidth = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
+                    val cellSizeByHeight = availableHeight / (gridRows + (gridRows - 1) * gapRatio)
+                    val cellSize = minOf(cellSizeByWidth, cellSizeByHeight)
+
+                    // 实际间隙大小
+                    val gapSize = cellSize * gapRatio
+
+                    // 起始偏移（居中）
+                    val totalGridWidth = gridCols * cellSize + (gridCols - 1) * gapSize
+                    val totalGridHeight = gridRows * cellSize + (gridRows - 1) * gapSize
+                    val startX = (canvasWidth - totalGridWidth) / 2
+                    val startY = headerHeight + (availableHeight - totalGridHeight) / 2
+
+                    // 绘制所有方格
                     for (row in 0 until gridRows) {
                         for (col in 0 until gridCols) {
                             val cellFilled = filledCells.contains(Pair(row, col))
@@ -114,22 +143,20 @@ class TpTestActivity : BaseActivity() {
                                 else -> Color(0xFF424242)
                             }
 
-                            val left = marginX + col * cellWidth + with(density) { 3.dp.toPx() }
-                            val top = marginY + row * cellHeight + with(density) { 3.dp.toPx() }
-                            val right = left + cellWidth - with(density) { 6.dp.toPx() }
-                            val bottom = top + cellHeight - with(density) { 6.dp.toPx() }
+                            val left = startX + col * (cellSize + gapSize)
+                            val top = startY + row * (cellSize + gapSize)
 
                             drawRect(
                                 color = fillColor,
                                 topLeft = Offset(left, top),
-                                size = Size(right - left, bottom - top)
+                                size = Size(cellSize, cellSize)
                             )
 
                             if (!cellFilled) {
                                 drawRect(
                                     color = Color.White.copy(alpha = 0.4f),
                                     topLeft = Offset(left, top),
-                                    size = Size(right - left, bottom - top),
+                                    size = Size(cellSize, cellSize),
                                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = with(density) { 1.dp.toPx() })
                                 )
                             }
@@ -139,7 +166,7 @@ class TpTestActivity : BaseActivity() {
                     touchPosition?.let { pos ->
                         drawCircle(
                             color = Color.Cyan,
-                            radius = with(density) { 12.dp.toPx() },
+                            radius = cellSize * 0.3f,
                             center = pos
                         )
                     }
