@@ -3,7 +3,14 @@ package com.mxj.mmitest.ui.testitems
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.mxj.mmitest.data.repository.TestRepository
 import com.mxj.mmitest.ui.base.BaseActivity
@@ -32,11 +39,70 @@ class BacklightTestActivity : BaseActivity() {
 
             TestItemScreen(
                 testName = testName,
-                testDescription = "屏幕亮度自动调节测试\n\n屏幕亮度将在 10% 和 100% 之间循环切换\n点击PASS表示正常，FAIL表示异常",
+                testDescription = "屏幕亮度自动调节测试\n\n屏幕亮度将在 10% 和 100% 之间循环切换",
                 remainingSeconds = remainingSeconds,
-                passEnabled = passEnabled,
                 onPass = { saveAndFinish(true) },
-                onFail = { saveAndFinish(false) }
+                onFail = { saveAndFinish(false) },
+                passEnabled = passEnabled,
+                content = {
+                    // 自定义内容：亮度显示
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "当前亮度",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // 亮度百分比显示
+                        Text(
+                            text = "${(currentBrightness * 100).toInt()}%",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // SeekBar显示亮度（只读，用户不可点击）
+                        Slider(
+                            value = currentBrightness,
+                            onValueChange = { },
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                disabledThumbColor = MaterialTheme.colorScheme.primary,
+                                disabledActiveTrackColor = MaterialTheme.colorScheme.primary,
+                                disabledInactiveTrackColor = Color.LightGray
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(text = "0%", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(text = "50%", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                            Text(text = "100%", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = "亮度自动切换中...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray
+                        )
+                    }
+                }
             )
 
             LaunchedEffect(currentBrightness) {
@@ -53,7 +119,6 @@ class BacklightTestActivity : BaseActivity() {
                     delay(1000)
                     remainingSeconds--
                 }
-                // 超时自动结束
                 saveAndFinish(false)
             }
         }
