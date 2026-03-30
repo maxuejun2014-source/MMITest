@@ -66,10 +66,10 @@ private fun LongPressButton(
     modifier: Modifier = Modifier
 ) {
     var isLongPressing by remember { mutableStateOf(false) }
-    var progress by remember { mutableStateOf(0f) }
+    var progress by remember { mutableFloatStateOf(0f) }
 
     // 长按进度动画
-    LaunchedEffect(isLongPressing) {
+    LaunchedEffect(isLongPressing, enabled, requireLongPress) {
         if (isLongPressing && requireLongPress && enabled) {
             for (i in 1..10) {
                 delay(100)
@@ -81,41 +81,32 @@ private fun LongPressButton(
             }
             if (isLongPressing) {
                 onClick()
-                isLongPressing = false
-                progress = 0f
             }
-        } else {
-            progress = 0f
         }
+        isLongPressing = false
+        progress = 0f
     }
 
-    Box(
-        modifier = modifier
-            .pointerInput(requireLongPress, enabled) {
-                if (enabled && requireLongPress) {
-                    detectTapGestures(
-                        onPress = {
-                            isLongPressing = true
-                            try {
-                                awaitRelease()
-                            } finally {
-                                isLongPressing = false
-                            }
-                        }
-                    )
-                }
-            }
-    ) {
+    Box(modifier = modifier) {
         Button(
-            onClick = { },
+            onClick = {
+                if (enabled) {
+                    if (!requireLongPress) {
+                        onClick()
+                    } else if (isLongPressing && progress >= 1f) {
+                        // Long press completed, onClick already called
+                    }
+                }
+            },
             colors = ButtonDefaults.buttonColors(
                 containerColor = backgroundColor,
                 disabledContainerColor = backgroundColor.copy(alpha = 0.5f)
             ),
             modifier = Modifier.fillMaxSize(),
-            enabled = false,
+            enabled = enabled,
             elevation = ButtonDefaults.buttonElevation(
-                disabledElevation = 0.dp
+                defaultElevation = 0.dp,
+                pressedElevation = 0.dp
             )
         ) {
             Column(
@@ -125,7 +116,7 @@ private fun LongPressButton(
                     text = text,
                     style = MaterialTheme.typography.headlineMedium
                 )
-                if (requireLongPress && isLongPressing) {
+                if (requireLongPress && enabled && isLongPressing) {
                     Text(
                         text = "请长按...",
                         style = MaterialTheme.typography.bodySmall
@@ -134,8 +125,28 @@ private fun LongPressButton(
             }
         }
 
+        // 长按检测覆盖层
+        if (enabled && requireLongPress) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .pointerInput(enabled, requireLongPress) {
+                        detectTapGestures(
+                            onPress = {
+                                isLongPressing = true
+                                try {
+                                    awaitRelease()
+                                } finally {
+                                    isLongPressing = false
+                                }
+                            }
+                        )
+                    }
+            )
+        }
+
         // 长按进度指示
-        if (requireLongPress && progress > 0f) {
+        if (requireLongPress && enabled && progress > 0f) {
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
