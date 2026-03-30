@@ -7,6 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.mxj.mmitest.data.local.TestSessionEntity
 import com.mxj.mmitest.data.repository.TestRepository
 import com.mxj.mmitest.domain.model.TestResultSummary
+import com.mxj.mmitest.util.ExportFormat
+import com.mxj.mmitest.util.ExportResult
+import com.mxj.mmitest.util.ExportUtils
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -23,8 +26,64 @@ import org.json.JSONObject
  */
 enum class ResultTab {
     HISTORY,    // 历史记录
+    STATISTICS, // 统计图表
     QR_CODE     // 二维码
 }
+
+/**
+ * 筛选条件
+ */
+data class FilterCriteria(
+    val deviceModel: String = "",
+    val resultStatus: ResultStatusFilter = ResultStatusFilter.ALL,
+    val dateFrom: Long? = null,
+    val dateTo: Long? = null
+)
+
+/**
+ * 结果状态筛选
+ */
+enum class ResultStatusFilter {
+    ALL,        // 全部
+    PASSED,     // 全部通过
+    FAILED,     // 有失败
+    COMPLETED   // 已完成
+}
+
+/**
+ * 导出状态
+ */
+sealed class ExportState {
+    data object Idle : ExportState()
+    data object Exporting : ExportState()
+    data class Success(val filePath: String, val fileName: String) : ExportState()
+    data class Error(val message: String) : ExportState()
+}
+
+/**
+ * 测试统计数据
+ */
+data class TestStatistics(
+    val totalSessions: Int = 0,
+    val totalTests: Int = 0,
+    val passedTests: Int = 0,
+    val failedTests: Int = 0,
+    val skippedTests: Int = 0,
+    val passRate: Float = 0f,
+    val failRate: Float = 0f,
+    val deviceStats: Map<String, Int> = emptyMap(), // 设备型号 -> 测试次数
+    val recentTrends: List<DailyStats> = emptyList() // 最近趋势
+)
+
+/**
+ * 每日测试统计
+ */
+data class DailyStats(
+    val date: String,
+    val passed: Int,
+    val failed: Int,
+    val total: Int
+)
 
 /**
  * 测试结果ViewModel
@@ -58,6 +117,30 @@ class ResultViewModel(application: Application) : AndroidViewModel(application) 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    // 筛选条件
+    private val _filterCriteria = MutableStateFlow(FilterCriteria())
+    val filterCriteria: StateFlow<FilterCriteria> = _filterCriteria.asStateFlow()
+
+    // 筛选后的会话列表
+    private val _filteredSessions = MutableStateFlow<List<TestSessionEntity>>(emptyList())
+    val filteredSessions: StateFlow<List<TestSessionEntity>> = _filteredSessions.asStateFlow()
+
+    // 是否有筛选条件
+    private val _hasActiveFilter = MutableStateFlow(false)
+    val hasActiveFilter: StateFlow<Boolean> = _hasActiveFilter.asStateFlow()
+
+    // 可用的设备型号列表
+    private val _availableDeviceModels = MutableStateFlow<List<String>>(emptyList())
+    val availableDeviceModels: StateFlow<List<String>> = _availableDeviceModels.asStateFlow()
+
+    // 导出状态
+    private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
+    val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
+
+    // 统计数据（基于筛选后的数据）
+    private val _statistics = MutableStateFlow<TestStatistics?>(null)
+    val statistics: StateFlow<TestStatistics?> = _statistics.asStateFlow()
+
     init {
         loadSessions()
     }
@@ -70,8 +153,116 @@ class ResultViewModel(application: Application) : AndroidViewModel(application) 
             _isLoading.value = true
             repository.getAllSessions().collect { sessionList ->
                 _sessions.value = sessionList
+                // 更新可用设备型号列表
+                _availableDeviceModels.value = sessionList
+                    .map { it.deviceModel }
+                    .distinct()
+                    .sorted()
+                // 应用筛选
+                applyFilter(sessionList)
+                // 计算统计
+                calculateStatistics(_filteredSessions.value)
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * 计算统计数据
+     */
+    private fun calculateStatistics(sessions: List<TestSessionEntity>) {
+        if (sessions.isEmpty()) {
+            _statistics.value = null
+            return
+        }
+
+        val totalTests = sessions.sumOf { it.totalCount }
+        val passedTests = sessions.sumOf { it.passedCount }
+        val failedTests = sessions.sumOf { it.failedCount }
+        val skippedTests = sessions.sumOf { it.skippedCount }
+
+        val passRate = if (totalTests > 0) passedTests.toFloat() / totalTests else 0f
+        val failRate = if (totalTests > 0) failedTests.toFloat() / totalTests else 0f
+
+        // 按设备统计
+        val deviceStats = sessions
+            .groupBy { it.deviceModel }
+            .mapValues { it.value.size }
+
+        // 最近趋势（按天分组）
+        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+        val recentTrends = sessions
+            .groupBy { dateFormat.format(java.util.Date(it.startTime)) }
+            .map { (date, daySessions) ->
+                DailyStats(
+                    date = date,
+                    passed = daySessions.sumOf { it.passedCount },
+                    failed = daySessions.sumOf { it.failedCount },
+                    total = daySessions.sumOf { it.totalCount }
+                )
+            }
+            .sortedBy { it.date }
+            .takeLast(7) // 最近7天
+
+        _statistics.value = TestStatistics(
+            totalSessions = sessions.size,
+            totalTests = totalTests,
+            passedTests = passedTests,
+            failedTests = failedTests,
+            skippedTests = skippedTests,
+            passRate = passRate,
+            failRate = failRate,
+            deviceStats = deviceStats,
+            recentTrends = recentTrends
+        )
+    }
+
+    /**
+     * 更新筛选条件并重新计算统计
+     */
+    fun updateFilter(criteria: FilterCriteria) {
+        _filterCriteria.value = criteria
+        applyFilter(_sessions.value)
+        calculateStatistics(_filteredSessions.value)
+        _hasActiveFilter.value = criteria.deviceModel.isNotEmpty() ||
+                criteria.resultStatus != ResultStatusFilter.ALL ||
+                criteria.dateFrom != null ||
+                criteria.dateTo != null
+    }
+
+    /**
+     * 清除筛选条件
+     */
+    fun clearFilter() {
+        _filterCriteria.value = FilterCriteria()
+        _filteredSessions.value = _sessions.value
+        _hasActiveFilter.value = false
+        calculateStatistics(_sessions.value)
+    }
+
+    /**
+     * 应用筛选
+     */
+    private fun applyFilter(sessions: List<TestSessionEntity>) {
+        val criteria = _filterCriteria.value
+        _filteredSessions.value = sessions.filter { session ->
+            // 按设备型号筛选
+            val matchesModel = criteria.deviceModel.isEmpty() ||
+                    session.deviceModel.contains(criteria.deviceModel, ignoreCase = true)
+
+            // 按结果状态筛选
+            val matchesStatus = when (criteria.resultStatus) {
+                ResultStatusFilter.ALL -> true
+                ResultStatusFilter.PASSED -> session.failedCount == 0 && session.skippedCount == 0
+                ResultStatusFilter.FAILED -> session.failedCount > 0
+                ResultStatusFilter.COMPLETED -> session.endTime != null
+            }
+
+            // 按日期范围筛选
+            val matchesDateFrom = criteria.dateFrom == null || session.startTime >= criteria.dateFrom
+            val matchesDateTo = criteria.dateTo == null || session.startTime <= criteria.dateTo
+
+            matchesModel && matchesStatus && matchesDateFrom && matchesDateTo
         }
     }
 
@@ -222,5 +413,32 @@ class ResultViewModel(application: Application) : AndroidViewModel(application) 
                 appendLine("  $statusIcon ${item.name}: ${item.status}")
             }
         }
+    }
+
+    /**
+     * 导出测试结果
+     */
+    fun exportResult(format: ExportFormat) {
+        val summary = _selectedSummary.value ?: return
+
+        viewModelScope.launch {
+            _exportState.value = ExportState.Exporting
+
+            val result = withContext(Dispatchers.IO) {
+                ExportUtils.exportResult(getApplication(), summary, format)
+            }
+
+            _exportState.value = when (result) {
+                is ExportResult.Success -> ExportState.Success(result.filePath, result.fileName)
+                is ExportResult.Error -> ExportState.Error(result.message)
+            }
+        }
+    }
+
+    /**
+     * 重置导出状态
+     */
+    fun resetExportState() {
+        _exportState.value = ExportState.Idle
     }
 }

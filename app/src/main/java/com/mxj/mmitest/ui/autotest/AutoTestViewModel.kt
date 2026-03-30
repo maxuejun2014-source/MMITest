@@ -56,6 +56,9 @@ class AutoTestViewModel(application: Application) : AndroidViewModel(application
     private val _testQueue = MutableStateFlow<List<TestConfig.TestItem>>(emptyList())
     val testQueue: StateFlow<List<TestConfig.TestItem>> = _testQueue.asStateFlow()
 
+    // 自定义超时时间映射
+    private var customTimeouts: Map<Int, Int> = emptyMap()
+
     // 测试结果列表
     private val _testResults = MutableStateFlow<List<TestResult>>(emptyList())
     val testResults: StateFlow<List<TestResult>> = _testResults.asStateFlow()
@@ -82,6 +85,22 @@ class AutoTestViewModel(application: Application) : AndroidViewModel(application
         // 初始化测试队列
         _testQueue.value = TestConfig.getEnabledTestItems()
         addLog("初始化完成，待测试项数量: ${_testQueue.value.size}")
+    }
+
+    /**
+     * 更新测试队列和超时配置
+     */
+    fun updateTestQueue(testItems: List<TestConfig.TestItem>, customTimeouts: Map<Int, Int>) {
+        _testQueue.value = testItems
+        this.customTimeouts = customTimeouts
+        addLog("测试队列已更新，共 ${testItems.size} 项")
+    }
+
+    /**
+     * 获取测试项的超时时间（优先使用自定义值）
+     */
+    private fun getTimeoutSeconds(testItem: TestConfig.TestItem): Int {
+        return customTimeouts[testItem.id] ?: testItem.timeoutSeconds
     }
 
     /**
@@ -169,7 +188,7 @@ class AutoTestViewModel(application: Application) : AndroidViewModel(application
         context.startActivity(intent)
 
         // 等待测试完成（通过超时机制）
-        val timeoutMs = testItem.timeoutSeconds * 1000L
+        val timeoutMs = getTimeoutSeconds(testItem) * 1000L
         val pollInterval = 500L
         var elapsed = 0L
 
