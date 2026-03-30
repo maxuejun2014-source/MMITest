@@ -5,8 +5,8 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
-import android.os.storage.StorageManager
 import androidx.activity.compose.setContent
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -61,25 +61,14 @@ class StorageTestActivity : BaseActivity() {
     }
 
     // 检测可移动SD卡
-    private fun getRemovableSdCardPath(): String? {
-        val storageManager = getSystemService(Context.STORAGE_SERVICE) as StorageManager
-        try {
-            val storageVolumes = storageManager.javaClass.getMethod("getVolumeList").invoke(storageManager) as Array<*>
-            for (volume in storageVolumes) {
-                volume ?: continue
-                val isRemovableField = volume.javaClass.getField("isRemovable") ?: continue
-                val isRemovable = isRemovableField.getBoolean(volume)
-                val stateMethod = volume.javaClass.getMethod("getState") ?: continue
-                val state = stateMethod.invoke(volume) as String
-                val pathMethod = volume.javaClass.getMethod("getPath") ?: continue
-                val path = pathMethod.invoke(volume) as String
-
-                if (isRemovable && state == Environment.MEDIA_MOUNTED) {
-                    return path
-                }
+    private fun getRemovableSdCard(): File? {
+        val dirs = ContextCompat.getExternalFilesDirs(this, null)
+        if (dirs.size > 1 && dirs[1] != null && Environment.isExternalStorageRemovable(dirs[1])) {
+            val path = dirs[1].absolutePath
+            val androidDataIndex = path.indexOf("/Android/data")
+            if (androidDataIndex > 0) {
+                return File(path.substring(0, androidDataIndex))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
         return null
     }
@@ -92,8 +81,8 @@ class StorageTestActivity : BaseActivity() {
         val internalStorage = getStorageInfo(Environment.getDataDirectory().path)
 
         // 外插SD卡信息（可移动存储）
-        val removableSdCardPath = getRemovableSdCardPath()
-        val sdCardStorage = removableSdCardPath?.let { getStorageInfo(it) }
+        val removableSdCard = getRemovableSdCard()
+        val sdCardStorage = removableSdCard?.let { getStorageInfo(it.absolutePath) }
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
@@ -142,7 +131,7 @@ class StorageTestActivity : BaseActivity() {
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        if (removableSdCardPath != null && sdCardStorage != null) {
+                        if (removableSdCard != null && sdCardStorage != null) {
                             val (used, total) = sdCardStorage
                             StorageInfoRow(
                                 used = used,
