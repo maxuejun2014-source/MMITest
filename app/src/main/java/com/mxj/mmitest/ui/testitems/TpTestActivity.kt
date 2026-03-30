@@ -27,8 +27,9 @@ class TpTestActivity : BaseActivity() {
     private val testItemId = 8
     private lateinit var repository: TestRepository
 
-    private val gridRows = 6
     private val gridCols = 8
+    private val minGridRows = 6
+    private val gapRatio = 0.125f // 间隙为方格边长的12.5%
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +42,10 @@ class TpTestActivity : BaseActivity() {
 
             val density = LocalDensity.current
 
-            val completedRows = remember(filledCells) {
+            // 根据屏幕高度动态计算行数，确保填满垂直方向
+            var gridRows by remember { mutableIntStateOf(minGridRows) }
+
+            val completedRows = remember(filledCells, gridRows) {
                 (0 until gridRows).filter { row ->
                     (0 until gridCols).all { col -> filledCells.contains(Pair(row, col)) }
                 }
@@ -73,32 +77,30 @@ class TpTestActivity : BaseActivity() {
             }
 
             // 触摸更新函数
-            val updateCell: (Offset, Float, Float) -> Unit = { offset, canvasWidth, canvasHeight ->
+            val updateCell: (Offset, Float, Float, Int) -> Unit = { offset, canvasWidth, canvasHeight, rows ->
                 val headerHeight = with(density) { 100.dp.toPx() }
                 val footerHeight = with(density) { 80.dp.toPx() }
-                val gapRatio = 0.25f // 间隙比例为方格边长的25%
 
                 val availableWidth = canvasWidth
                 val availableHeight = canvasHeight - headerHeight - footerHeight
 
-                // 计算方格边长（使用短边）
-                val cellSizeByWidth = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
-                val cellSizeByHeight = availableHeight / (gridRows + (gridRows - 1) * gapRatio)
-                val cellSize = minOf(cellSizeByWidth, cellSizeByHeight)
+                // 根据宽度计算方格边长
+                val cellSize = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
 
                 // 实际间隙大小
                 val gapSize = cellSize * gapRatio
 
-                // 起始偏移（居中）
-                val totalGridWidth = gridCols * cellSize + (gridCols - 1) * gapSize
-                val totalGridHeight = gridRows * cellSize + (gridRows - 1) * gapSize
-                val startX = (canvasWidth - totalGridWidth) / 2
-                val startY = headerHeight + (availableHeight - totalGridHeight) / 2
+                // 计算能容纳的行数（至少minGridRows行）
+                val totalGridHeight = rows * cellSize + (rows - 1) * gapSize
+                val startY = headerHeight
+                val endY = canvasHeight - footerHeight
+                val actualStartY = startY
+                val actualEndY = endY
 
-                val col = ((offset.x - startX) / (cellSize + gapSize)).toInt()
-                val row = ((offset.y - startY) / (cellSize + gapSize)).toInt()
+                val col = ((offset.x) / (cellSize + gapSize)).toInt()
+                val row = ((offset.y - actualStartY) / (cellSize + gapSize)).toInt()
 
-                if (row in 0 until gridRows && col in 0 until gridCols) {
+                if (row in 0 until rows && col in 0 until gridCols) {
                     filledCells = filledCells + Pair(row, col)
                 }
             }
@@ -110,27 +112,30 @@ class TpTestActivity : BaseActivity() {
 
                     val headerHeight = with(density) { 100.dp.toPx() }
                     val footerHeight = with(density) { 80.dp.toPx() }
-                    val gapRatio = 0.25f
 
                     val availableWidth = canvasWidth
                     val availableHeight = canvasHeight - headerHeight - footerHeight
 
-                    // 计算方格边长（正方形，使用短边）
-                    val cellSizeByWidth = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
-                    val cellSizeByHeight = availableHeight / (gridRows + (gridRows - 1) * gapRatio)
-                    val cellSize = minOf(cellSizeByWidth, cellSizeByHeight)
+                    // 根据宽度计算方格边长（正方形）
+                    val cellSize = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
 
                     // 实际间隙大小
                     val gapSize = cellSize * gapRatio
 
-                    // 起始偏移（居中）
-                    val totalGridWidth = gridCols * cellSize + (gridCols - 1) * gapSize
-                    val totalGridHeight = gridRows * cellSize + (gridRows - 1) * gapSize
-                    val startX = (canvasWidth - totalGridWidth) / 2
-                    val startY = headerHeight + (availableHeight - totalGridHeight) / 2
+                    // 计算行数，确保填满垂直方向（第一行在顶部，最后一行在底部）
+                    val calculatedRows = ((availableHeight + gapSize) / (cellSize + gapSize)).toInt()
+                    val actualGridRows = maxOf(calculatedRows, minGridRows)
+                    gridRows = actualGridRows
+
+                    // 第一行在顶部，最后一行在底部
+                    val totalGridHeight = actualGridRows * cellSize + (actualGridRows - 1) * gapSize
+                    val startY = headerHeight
+                    val endY = canvasHeight - footerHeight
+                    val actualStartY = startY
+                    val actualEndY = endY
 
                     // 绘制所有方格
-                    for (row in 0 until gridRows) {
+                    for (row in 0 until actualGridRows) {
                         for (col in 0 until gridCols) {
                             val cellFilled = filledCells.contains(Pair(row, col))
                             val rowComplete = completedRows.contains(row)
@@ -143,8 +148,8 @@ class TpTestActivity : BaseActivity() {
                                 else -> Color(0xFF424242)
                             }
 
-                            val left = startX + col * (cellSize + gapSize)
-                            val top = startY + row * (cellSize + gapSize)
+                            val left = col * (cellSize + gapSize)
+                            val top = actualStartY + row * (cellSize + gapSize)
 
                             drawRect(
                                 color = fillColor,
@@ -179,11 +184,11 @@ class TpTestActivity : BaseActivity() {
                             detectDragGestures(
                                 onDragStart = { offset ->
                                     touchPosition = offset
-                                    updateCell(offset, this.size.width.toFloat(), this.size.height.toFloat())
+                                    updateCell(offset, this.size.width.toFloat(), this.size.height.toFloat(), gridRows)
                                 },
                                 onDrag = { change, _ ->
                                     touchPosition = change.position
-                                    updateCell(change.position, this.size.width.toFloat(), this.size.height.toFloat())
+                                    updateCell(change.position, this.size.width.toFloat(), this.size.height.toFloat(), gridRows)
                                 },
                                 onDragEnd = { touchPosition = null },
                                 onDragCancel = { touchPosition = null }
