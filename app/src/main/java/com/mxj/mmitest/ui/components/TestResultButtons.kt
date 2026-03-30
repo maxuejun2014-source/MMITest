@@ -9,11 +9,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
+import com.mxj.mmitest.config.TestConfig
 import kotlinx.coroutines.delay
 
 /**
  * PASS/FAIL 按钮组件
- * 防呆设计：FAIL按钮始终可点击（单击即触发），PASS按钮受passEnabled控制（需要长按）
+ * 防呆设计：FAIL按钮始终可点击（单击即触发），PASS按钮受passEnabled控制
+ * 长按时间可在TestConfig.TestSettings中配置
  */
 @Composable
 fun TestResultButtons(
@@ -22,16 +24,21 @@ fun TestResultButtons(
     modifier: Modifier = Modifier,
     passEnabled: Boolean = false
 ) {
+    // 从配置读取长按设置
+    val requireLongPress = TestConfig.TestSettings.PASS_REQUIRE_LONG_PRESS
+    val longPressDurationMs = TestConfig.TestSettings.PASS_LONG_PRESS_DURATION_MS
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        // PASS按钮（绿色）- 需要长按触发，受passEnabled控制
+        // PASS按钮（绿色）- 受passEnabled控制，长按时间可配置
         LongPressButton(
             text = "PASS",
             backgroundColor = if (passEnabled) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
             onClick = onPass,
-            requireLongPress = true,
+            requireLongPress = requireLongPress,
+            longPressDurationMs = longPressDurationMs,
             enabled = passEnabled,
             modifier = Modifier
                 .weight(1f)
@@ -62,17 +69,21 @@ private fun LongPressButton(
     backgroundColor: Color,
     onClick: () -> Unit,
     requireLongPress: Boolean,
+    longPressDurationMs: Long = 500L,
     enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var isLongPressing by remember { mutableStateOf(false) }
     var progress by remember { mutableFloatStateOf(0f) }
 
+    // 计算每步进度的时间（总时长分成10步）
+    val stepDelay = longPressDurationMs / 10
+
     // 长按进度动画
     LaunchedEffect(isLongPressing, enabled, requireLongPress) {
         if (isLongPressing && requireLongPress && enabled) {
             for (i in 1..10) {
-                delay(100)
+                delay(stepDelay)
                 progress = i / 10f
                 if (!isLongPressing) {
                     progress = 0f

@@ -10,6 +10,17 @@ import com.mxj.mmitest.ui.testitems.*
 object TestConfig {
 
     /**
+     * 测试设置
+     */
+    object TestSettings {
+        // PASS按钮是否需要长按（false=单击即触发，true=需要长按）
+        const val PASS_REQUIRE_LONG_PRESS = true
+
+        // PASS按钮长按时长（毫秒）
+        const val PASS_LONG_PRESS_DURATION_MS = 500L
+    }
+
+    /**
      * 测试项列表
      */
     val testItems = listOf(
