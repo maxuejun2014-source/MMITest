@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 class LcdTestActivity : BaseActivity() {
 
     private val testName = "LCD测试"
-    private val timeoutSeconds = 60
+    private val timeoutSeconds = 15
     private val testItemId = 5
     private lateinit var repository: TestRepository
     private val colors = listOf(
@@ -79,15 +79,13 @@ class LcdTestActivity : BaseActivity() {
                 }
             }
 
-            // 自动切换颜色
+            // 自动切换颜色，每秒切换一次
             LaunchedEffect(Unit) {
                 for (i in timeoutSeconds downTo 0) {
                     remainingSeconds = i
-                    if (i > 0 && i % 12 == 0 && currentColorIndex < colors.size - 1) {
-                        currentColorIndex++
-                    }
-                    if (i == 0) break
                     delay(1000)
+                    // 每秒切换到下一个颜色，循环显示
+                    currentColorIndex = (currentColorIndex + 1) % colors.size
                 }
                 // 超时自动结束
                 saveAndFinish(false)
