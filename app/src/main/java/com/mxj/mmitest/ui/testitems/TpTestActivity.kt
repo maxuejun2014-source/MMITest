@@ -6,6 +6,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -30,8 +32,9 @@ class TpTestActivity : BaseActivity() {
     private val testItemId = 8
     private lateinit var repository: TestRepository
 
-    private val gridRows = 6
-    private val gridCols = 8
+    // 网格配置（参考MTK原厂代码）
+    private val YCOUNT = 24 // 横向网格数（行数）
+    private val XCOUNT = 15 // 纵向网格数（列数）
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,33 +42,30 @@ class TpTestActivity : BaseActivity() {
         repository = TestRepository(this)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var filledCells by remember { mutableStateOf(setOf<Pair<Int, Int>>()) }
-            var touchPosition by remember { mutableStateOf<Offset?>(null) }
+            // 记录每个格子是否被触摸过
+            var drawnGrid by remember { mutableStateOf(Array(YCOUNT) { BooleanArray(XCOUNT) }) }
+            // 触摸路径
+            var touchPath by remember { mutableStateOf(listOf<Offset>()) }
+            // 测试是否完成
             var testCompleted by remember { mutableStateOf(false) }
 
             val density = LocalDensity.current
 
-            val completedRows = remember(filledCells) {
-                (0 until gridRows).filter { row ->
-                    (0 until gridCols).all { col -> filledCells.contains(Pair(row, col)) }
-                }
-            }
-            val completedCols = remember(filledCells) {
-                (0 until gridCols).filter { col ->
-                    (0 until gridRows).all { row -> filledCells.contains(Pair(row, col)) }
-                }
+            // 判断是否通过（所有需要检测的格子都被绘制）
+            val isPassed = remember(drawnGrid) {
+                isGridPassed(drawnGrid)
             }
 
-            val allLinesCompleted = completedRows.size >= gridRows && completedCols.size >= gridCols
-
-            LaunchedEffect(allLinesCompleted) {
-                if (allLinesCompleted && !testCompleted) {
+            // 自动PASS
+            LaunchedEffect(isPassed) {
+                if (isPassed && !testCompleted) {
                     testCompleted = true
                     delay(500)
                     saveAndFinish(true)
                 }
             }
 
+            // 超时处理
             LaunchedEffect(Unit) {
                 for (i in timeoutSeconds downTo 0) {
                     remainingSeconds = i
@@ -76,79 +76,69 @@ class TpTestActivity : BaseActivity() {
                 }
             }
 
-            // 触摸更新函数
-            val updateCell: (Offset, Float, Float) -> Unit = { offset, canvasWidth, canvasHeight ->
-                val headerHeight = with(density) { 90.dp.toPx() }
-                val footerHeight = with(density) { 60.dp.toPx() }
-                val gapRatio = 1.2f // 间隙为方格边长的1.2倍
+            // 更新格子状态的函数
+            val updateGrid: (Offset, Float, Float) -> Unit = { offset, canvasWidth, canvasHeight ->
+                val stepX = canvasWidth / XCOUNT
+                val stepY = canvasHeight / YCOUNT
 
-                val availableWidth = canvasWidth
-                val availableHeight = canvasHeight - headerHeight - footerHeight
+                val x = (offset.x / stepX).toInt()
+                val y = (offset.y / stepY).toInt()
 
-                // 根据宽度计算方格边长（充满宽度方向）
-                val cellSize = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
-                val gapSize = cellSize * gapRatio
-
-                val col = (offset.x / (cellSize + gapSize)).toInt()
-                val row = ((offset.y - headerHeight) / (cellSize + gapSize)).toInt()
-
-                if (row in 0 until gridRows && col in 0 until gridCols) {
-                    filledCells = filledCells + Pair(row, col)
+                if (x in 0 until XCOUNT && y in 0 until YCOUNT) {
+                    if (isNeedCheck(y, x)) {
+                        val newGrid = drawnGrid.copyOf()
+                        newGrid[y] = newGrid[y].copyOf()
+                        newGrid[y][x] = true
+                        drawnGrid = newGrid
+                    }
                 }
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black)
+                    .background(Color.White)
             ) {
                 // 绘制层
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     val canvasWidth = size.width
                     val canvasHeight = size.height
 
-                    val headerHeight = with(density) { 90.dp.toPx() }
-                    val footerHeight = with(density) { 60.dp.toPx() }
-                    val gapRatio = 1.2f
+                    val stepX = canvasWidth / XCOUNT
+                    val stepY = canvasHeight / YCOUNT
 
-                    val availableWidth = canvasWidth
-                    val availableHeight = canvasHeight - headerHeight - footerHeight
+                    // 绘制网格线（只有需要检测的线）
+                    for (i in 0 until YCOUNT) {
+                        for (j in 0 until XCOUNT) {
+                            if (isNeedCheck(i, j)) {
+                                val left = j * stepX + 1
+                                val top = i * stepY + 1
+                                val right = left + stepX - 1
+                                val bottom = top + stepY - 1
 
-                    // 根据宽度计算方格边长
-                    val cellSize = availableWidth / (gridCols + (gridCols - 1) * gapRatio)
-                    val gapSize = cellSize * gapRatio
-
-                    // 绘制所有方格
-                    for (row in 0 until gridRows) {
-                        for (col in 0 until gridCols) {
-                            val cellFilled = filledCells.contains(Pair(row, col))
-                            val rowComplete = completedRows.contains(row)
-
-                            // 颜色：填充=黄色，完成行=深绿色，未填充=深灰色
-                            val fillColor = when {
-                                cellFilled && rowComplete -> Color(0xFF1B5E20) // 深绿
-                                cellFilled -> Color(0xFFFFC107)               // 黄色
-                                else -> Color(0xFF424242)                     // 深灰
+                                // 填充颜色：已绘制=绿色，未绘制=白色（边框为黑色）
+                                if (drawnGrid[i][j]) {
+                                    drawRect(
+                                        color = Color.Green,
+                                        topLeft = Offset(left, top),
+                                        size = Size(right - left, bottom - top)
+                                    )
+                                }
                             }
-
-                            val left = col * (cellSize + gapSize)
-                            val top = headerHeight + row * (cellSize + gapSize)
-
-                            drawRect(
-                                color = fillColor,
-                                topLeft = Offset(left, top),
-                                size = Size(cellSize, cellSize)
-                            )
                         }
                     }
 
-                    // 绘制触摸点
-                    touchPosition?.let { pos ->
-                        drawCircle(
-                            color = Color.Cyan,
-                            radius = cellSize * 0.35f,
-                            center = pos
-                        )
+                    // 绘制触摸路径
+                    if (touchPath.isNotEmpty()) {
+                        for (i in 0 until touchPath.size - 1) {
+                            drawLine(
+                                color = Color.Green,
+                                start = touchPath[i],
+                                end = touchPath[i + 1],
+                                strokeWidth = 6.dp.toPx(),
+                                cap = StrokeCap.Round
+                            )
+                        }
                     }
                 }
 
@@ -159,82 +149,58 @@ class TpTestActivity : BaseActivity() {
                         .pointerInput(Unit) {
                             detectDragGestures(
                                 onDragStart = { offset ->
-                                    touchPosition = offset
-                                    updateCell(offset, this.size.width.toFloat(), this.size.height.toFloat())
+                                    touchPath = listOf(offset)
+                                    updateGrid(offset, this.size.width.toFloat(), this.size.height.toFloat())
                                 },
                                 onDrag = { change, _ ->
-                                    touchPosition = change.position
-                                    updateCell(change.position, this.size.width.toFloat(), this.size.height.toFloat())
+                                    touchPath = touchPath + change.position
+                                    updateGrid(change.position, this.size.width.toFloat(), this.size.height.toFloat())
                                 },
-                                onDragEnd = { touchPosition = null },
-                                onDragCancel = { touchPosition = null }
+                                onDragEnd = {
+                                    touchPath = emptyList()
+                                },
+                                onDragCancel = {
+                                    touchPath = emptyList()
+                                }
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { offset ->
+                                    touchPath = listOf(offset)
+                                    updateGrid(offset, this.size.width.toFloat(), this.size.height.toFloat())
+                                }
                             )
                         }
                 )
+            }
+        }
+    }
 
-                // 顶部标题和进度
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 24.dp)
-                ) {
-                    Text(
-                        text = testName,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "请在屏幕上划线填充所有方格",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row {
-                        Text(
-                            text = "横线: ${completedRows.size}/$gridRows",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (completedRows.size >= gridRows) Color.Green else Color.Yellow,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.width(24.dp))
-                        Text(
-                            text = "竖线: ${completedCols.size}/$gridCols",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = if (completedCols.size >= gridCols) Color.Green else Color.Yellow,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
+    // 判断该位置是否需要检测（参考MTK原厂代码）
+    private fun isNeedCheck(y: Int, x: Int): Boolean {
+        return (y == 0 // 顶部
+                || y == (YCOUNT - 1) // 底部
+                || y == (YCOUNT / 5) // Y方向1/5处
+                || y == (YCOUNT * 2 / 5) // Y方向2/5处
+                || y == (YCOUNT * 3 / 5) // Y方向3/5处
+                || y == (YCOUNT * 4 / 5) // Y方向4/5处
+                || x == 0 // 左边
+                || x == (XCOUNT - 1) // 右边
+                || x == (XCOUNT / 2) // X方向中间
+                )
+    }
 
-                // 底部状态
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                ) {
-                    if (allLinesCompleted) {
-                        Text(
-                            text = "测试完成！",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color.Green,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    } else {
-                        val remainingCells = gridRows * gridCols - filledCells.size
-                        Text(
-                            text = "剩余方格: $remainingCells",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
+    // 判断是否所有需要检测的格子都被绘制
+    private fun isGridPassed(grid: Array<BooleanArray>): Boolean {
+        for (i in 0 until YCOUNT) {
+            for (j in 0 until XCOUNT) {
+                if (isNeedCheck(i, j) && !grid[i][j]) {
+                    return false
                 }
             }
         }
+        return true
     }
 
     private fun saveAndFinish(passed: Boolean) {
