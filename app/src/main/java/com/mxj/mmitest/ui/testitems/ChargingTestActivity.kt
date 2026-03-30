@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 class ChargingTestActivity : BaseActivity() {
@@ -17,7 +16,6 @@ class ChargingTestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
             var batteryStatus by remember { mutableStateOf("检测中...") }
             
             TestItemScreen(
@@ -28,32 +26,18 @@ class ChargingTestActivity : BaseActivity() {
                 onFail = { finish() }
             )
             
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { 
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false 
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
-            
             LaunchedEffect(Unit) {
                 val batteryManager = getSystemService(Context.BATTERY_SERVICE) as BatteryManager
-                
+
                 while (remainingSeconds > 0) {
                     val isCharging = batteryManager.isCharging
                     batteryStatus = if (isCharging) "正在充电" else "未充电"
-                    
+
                     delay(1000)
                     remainingSeconds--
-                    
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

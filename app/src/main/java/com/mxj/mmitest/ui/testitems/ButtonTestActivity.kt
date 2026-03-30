@@ -7,7 +7,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 /**
@@ -20,7 +19,6 @@ class ButtonTestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
             TestItemScreen(
                 testName = testName,
                 testDescription = "物理按键和虚拟按键测试\n\n" +
@@ -33,20 +31,13 @@ class ButtonTestActivity : BaseActivity() {
                 onPass = { finish() },
                 onFail = { finish() }
             )
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { remainingSeconds = timeoutSeconds; showTimeoutDialog = false },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
             LaunchedEffect(Unit) {
                 for (i in timeoutSeconds downTo 0) {
                     remainingSeconds = i
-                    if (i == 0) { showTimeoutDialog = true; break }
-                    delay(1000)
+                    if (i > 0) delay(1000)
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

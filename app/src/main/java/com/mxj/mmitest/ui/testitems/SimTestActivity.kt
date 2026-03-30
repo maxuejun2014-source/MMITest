@@ -5,7 +5,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 /**
@@ -21,7 +20,6 @@ class SimTestActivity : BaseActivity() {
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
 
             TestItemScreen(
                 testName = testName,
@@ -35,27 +33,14 @@ class SimTestActivity : BaseActivity() {
                 onFail = { finish() }
             )
 
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = {
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
-
-            // 倒计时逻辑
+            // 倒计时逻辑 - 超时直接finish，不弹框
             LaunchedEffect(Unit) {
                 while (remainingSeconds > 0) {
                     delay(1000)
                     remainingSeconds--
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

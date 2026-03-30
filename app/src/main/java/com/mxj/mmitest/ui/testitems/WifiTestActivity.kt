@@ -5,7 +5,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 class WifiTestActivity : BaseActivity() {
@@ -15,8 +14,7 @@ class WifiTestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
-            
+
             TestItemScreen(
                 testName = testName,
                 testDescription = "检测附近可用WIFI网络\n\n请确认WIFI已开启\n点击PASS表示WIFI功能正常，FAIL表示异常",
@@ -24,27 +22,14 @@ class WifiTestActivity : BaseActivity() {
                 onPass = { finish() },
                 onFail = { finish() }
             )
-            
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { 
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false 
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
-            
+
             LaunchedEffect(Unit) {
                 while (remainingSeconds > 0) {
                     delay(1000)
                     remainingSeconds--
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 class ProximitySensorTestActivity : BaseActivity(), SensorEventListener {
@@ -28,7 +27,6 @@ class ProximitySensorTestActivity : BaseActivity(), SensorEventListener {
         
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
             val distance by remember { distanceState }
             
             TestItemScreen(
@@ -39,26 +37,13 @@ class ProximitySensorTestActivity : BaseActivity(), SensorEventListener {
                 onFail = { finish() }
             )
             
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { 
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false 
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
-            
             LaunchedEffect(Unit) {
                 while (remainingSeconds > 0) {
                     delay(1000)
                     remainingSeconds--
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

@@ -10,7 +10,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 class VibrationTestActivity : BaseActivity() {
@@ -20,7 +19,6 @@ class VibrationTestActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
             
             TestItemScreen(
                 testName = testName,
@@ -29,18 +27,6 @@ class VibrationTestActivity : BaseActivity() {
                 onPass = { finish() },
                 onFail = { finish() }
             )
-            
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { 
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false 
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
             
             LaunchedEffect(Unit) {
                 val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -57,14 +43,12 @@ class VibrationTestActivity : BaseActivity() {
                         @Suppress("DEPRECATION")
                         vibrator.vibrate(500)
                     }
-                    
+
                     delay(1000)
                     remainingSeconds--
-                    
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }

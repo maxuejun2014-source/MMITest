@@ -13,27 +13,25 @@ import kotlinx.coroutines.delay
 
 /**
  * PASS/FAIL 按钮组件
- * 防呆设计：FAIL按钮始终可点击，PASS按钮受passEnabled控制
- * 需要长按（1秒）才能触发，防止误触
+ * 防呆设计：FAIL按钮始终可点击（单击即触发），PASS按钮受passEnabled控制（需要长按）
  */
 @Composable
 fun TestResultButtons(
     onPass: () -> Unit,
     onFail: () -> Unit,
     modifier: Modifier = Modifier,
-    requireLongPress: Boolean = true,
     passEnabled: Boolean = false
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        // PASS按钮（绿色）- 受passEnabled控制
+        // PASS按钮（绿色）- 需要长按触发，受passEnabled控制
         LongPressButton(
             text = "PASS",
             backgroundColor = if (passEnabled) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
             onClick = onPass,
-            requireLongPress = requireLongPress,
+            requireLongPress = true,
             enabled = passEnabled,
             modifier = Modifier
                 .weight(1f)
@@ -41,13 +39,11 @@ fun TestResultButtons(
                 .padding(end = 8.dp)
         )
 
-        // FAIL按钮（红色）- 始终可点击
-        LongPressButton(
+        // FAIL按钮（红色）- 单击即触发，始终可点击
+        SimpleClickButton(
             text = "FAIL",
             backgroundColor = Color(0xFFF44336),
             onClick = onFail,
-            requireLongPress = requireLongPress,
-            enabled = true,
             modifier = Modifier
                 .weight(1f)
                 .height(80.dp)
@@ -95,35 +91,20 @@ private fun LongPressButton(
 
     Box(
         modifier = modifier
-            .then(
-                if (enabled) {
-                    Modifier.pointerInput(requireLongPress) {
-                        if (requireLongPress) {
-                            detectTapGestures(
-                                onPress = {
-                                    isLongPressing = true
-                                    try {
-                                        awaitRelease()
-                                    } finally {
-                                        isLongPressing = false
-                                    }
-                                },
-                                onTap = {
-                                    if (!requireLongPress) {
-                                        onClick()
-                                    }
-                                }
-                            )
-                        } else {
-                            detectTapGestures(
-                                onTap = { onClick() }
-                            )
+            .pointerInput(requireLongPress, enabled) {
+                if (enabled && requireLongPress) {
+                    detectTapGestures(
+                        onPress = {
+                            isLongPressing = true
+                            try {
+                                awaitRelease()
+                            } finally {
+                                isLongPressing = false
+                            }
                         }
-                    }
-                } else {
-                    Modifier
+                    )
                 }
-            )
+            }
     ) {
         Button(
             onClick = { },
@@ -163,6 +144,43 @@ private fun LongPressButton(
                     .align(Alignment.BottomCenter),
                 color = Color.White,
                 trackColor = Color.White.copy(alpha = 0.3f),
+            )
+        }
+    }
+}
+
+/**
+ * 简单单击按钮组件（无长按要求）
+ * FAIL按钮使用此组件
+ */
+@Composable
+private fun SimpleClickButton(
+    text: String,
+    backgroundColor: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.pointerInput(Unit) {
+            detectTapGestures(
+                onTap = { onClick() }
+            )
+        }
+    ) {
+        Button(
+            onClick = { },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = backgroundColor
+            ),
+            modifier = Modifier.fillMaxSize(),
+            enabled = false,
+            elevation = ButtonDefaults.buttonElevation(
+                disabledElevation = 0.dp
+            )
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.headlineMedium
             )
         }
     }

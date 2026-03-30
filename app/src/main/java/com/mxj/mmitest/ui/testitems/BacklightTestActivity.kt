@@ -6,7 +6,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import kotlinx.coroutines.delay
 
 class BacklightTestActivity : BaseActivity() {
@@ -22,7 +21,6 @@ class BacklightTestActivity : BaseActivity() {
         
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-            var showTimeoutDialog by remember { mutableStateOf(false) }
             var currentBrightness by remember { mutableFloatStateOf(0.1f) }
             
             TestItemScreen(
@@ -32,18 +30,6 @@ class BacklightTestActivity : BaseActivity() {
                 onPass = { finish() },
                 onFail = { finish() }
             )
-            
-            if (showTimeoutDialog) {
-                TimeoutDialog(
-                    remainingSeconds = remainingSeconds,
-                    onContinueWait = { 
-                        remainingSeconds = timeoutSeconds
-                        showTimeoutDialog = false 
-                    },
-                    onMarkFailed = { finish() },
-                    onSkip = { finish() }
-                )
-            }
             
             LaunchedEffect(currentBrightness) {
                 val params = window.attributes
@@ -58,10 +44,9 @@ class BacklightTestActivity : BaseActivity() {
                 while (remainingSeconds > 0) {
                     delay(1000)
                     remainingSeconds--
-                    if (remainingSeconds == 0) {
-                        showTimeoutDialog = true
-                    }
                 }
+                // 超时自动结束
+                finish()
             }
         }
     }
