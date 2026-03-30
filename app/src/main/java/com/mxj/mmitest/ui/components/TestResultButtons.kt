@@ -13,37 +13,41 @@ import kotlinx.coroutines.delay
 
 /**
  * PASS/FAIL 按钮组件
- * 防呆设计：需要长按（1秒）才能触发，防止误触
+ * 防呆设计：FAIL按钮始终可点击，PASS按钮受passEnabled控制
+ * 需要长按（1秒）才能触发，防止误触
  */
 @Composable
 fun TestResultButtons(
     onPass: () -> Unit,
     onFail: () -> Unit,
     modifier: Modifier = Modifier,
-    requireLongPress: Boolean = true
+    requireLongPress: Boolean = true,
+    passEnabled: Boolean = false
 ) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        // PASS按钮（绿色）
+        // PASS按钮（绿色）- 受passEnabled控制
         LongPressButton(
             text = "PASS",
-            backgroundColor = Color(0xFF4CAF50),
+            backgroundColor = if (passEnabled) Color(0xFF4CAF50) else Color(0xFF9E9E9E),
             onClick = onPass,
             requireLongPress = requireLongPress,
+            enabled = passEnabled,
             modifier = Modifier
                 .weight(1f)
                 .height(80.dp)
                 .padding(end = 8.dp)
         )
 
-        // FAIL按钮（红色）
+        // FAIL按钮（红色）- 始终可点击
         LongPressButton(
             text = "FAIL",
             backgroundColor = Color(0xFFF44336),
             onClick = onFail,
             requireLongPress = requireLongPress,
+            enabled = true,
             modifier = Modifier
                 .weight(1f)
                 .height(80.dp)
@@ -54,6 +58,7 @@ fun TestResultButtons(
 
 /**
  * 长按按钮组件
+ * enabled=false时按钮灰显且不可点击
  */
 @Composable
 private fun LongPressButton(
@@ -61,6 +66,7 @@ private fun LongPressButton(
     backgroundColor: Color,
     onClick: () -> Unit,
     requireLongPress: Boolean,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var isLongPressing by remember { mutableStateOf(false) }
@@ -68,7 +74,7 @@ private fun LongPressButton(
 
     // 长按进度动画
     LaunchedEffect(isLongPressing) {
-        if (isLongPressing && requireLongPress) {
+        if (isLongPressing && requireLongPress && enabled) {
             for (i in 1..10) {
                 delay(100)
                 progress = i / 10f
@@ -89,37 +95,47 @@ private fun LongPressButton(
 
     Box(
         modifier = modifier
-            .pointerInput(requireLongPress) {
-                if (requireLongPress) {
-                    detectTapGestures(
-                        onPress = {
-                            isLongPressing = true
-                            try {
-                                awaitRelease()
-                            } finally {
-                                isLongPressing = false
-                            }
-                        },
-                        onTap = {
-                            if (!requireLongPress) {
-                                onClick()
-                            }
+            .then(
+                if (enabled) {
+                    Modifier.pointerInput(requireLongPress) {
+                        if (requireLongPress) {
+                            detectTapGestures(
+                                onPress = {
+                                    isLongPressing = true
+                                    try {
+                                        awaitRelease()
+                                    } finally {
+                                        isLongPressing = false
+                                    }
+                                },
+                                onTap = {
+                                    if (!requireLongPress) {
+                                        onClick()
+                                    }
+                                }
+                            )
+                        } else {
+                            detectTapGestures(
+                                onTap = { onClick() }
+                            )
                         }
-                    )
+                    }
                 } else {
-                    detectTapGestures(
-                        onTap = { onClick() }
-                    )
+                    Modifier
                 }
-            }
+            )
     ) {
         Button(
             onClick = { },
             colors = ButtonDefaults.buttonColors(
-                containerColor = backgroundColor
+                containerColor = backgroundColor,
+                disabledContainerColor = backgroundColor.copy(alpha = 0.5f)
             ),
             modifier = Modifier.fillMaxSize(),
-            enabled = false
+            enabled = false,
+            elevation = ButtonDefaults.buttonElevation(
+                disabledElevation = 0.dp
+            )
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally

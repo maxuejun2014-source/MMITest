@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 /**
  * 测试项界面组件
  * 通用的测试项界面布局，包含标题、描述、倒计时和PASS/FAIL按钮
+ * passEnabled控制PASS按钮是否可点击，FAIL按钮始终可点击
  */
 @Composable
 fun TestItemScreen(
@@ -18,7 +19,8 @@ fun TestItemScreen(
     remainingSeconds: Int,
     onPass: () -> Unit,
     onFail: () -> Unit,
-    content: (@Composable () -> Unit)? = null
+    content: (@Composable () -> Unit)? = null,
+    passEnabled: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -63,6 +65,7 @@ fun TestItemScreen(
         TestResultButtons(
             onPass = onPass,
             onFail = onFail,
+            passEnabled = passEnabled,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 32.dp)

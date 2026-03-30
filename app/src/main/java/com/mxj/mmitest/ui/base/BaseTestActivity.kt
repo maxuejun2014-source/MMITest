@@ -19,7 +19,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.mxj.mmitest.ui.components.TestItemScreen
-import com.mxj.mmitest.ui.components.TimeoutDialog
 import com.mxj.mmitest.util.PermissionUtils
 import kotlinx.coroutines.launch
 
@@ -60,9 +59,11 @@ abstract class BaseTestActivity : BaseActivity() {
     var onTestResult: ((Boolean) -> Unit)? = null
 
     private var remainingSeconds by mutableIntStateOf(timeoutSeconds)
-    private var showTimeoutDialog by mutableStateOf(false)
     private var showPermissionDialog by mutableStateOf(false)
     private var missingPermissions by mutableStateOf<List<String>>(emptyList())
+
+    // PASS按钮是否可点击（测试条件满足时由子类调用enablePassButton()启用）
+    private var passButtonEnabled by mutableStateOf(false)
 
     private val handler = Handler(Looper.getMainLooper())
     private var countdownRunnable: Runnable? = null
@@ -116,15 +117,10 @@ abstract class BaseTestActivity : BaseActivity() {
     @Composable
     private fun TestContent() {
         var localRemainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
-        var localShowTimeoutDialog by remember { mutableStateOf(false) }
 
         // 监听remainingSeconds变化
         LaunchedEffect(remainingSeconds) {
             localRemainingSeconds = remainingSeconds
-        }
-
-        LaunchedEffect(showTimeoutDialog) {
-            localShowTimeoutDialog = showTimeoutDialog
         }
 
         TestItemScreen(
@@ -132,27 +128,9 @@ abstract class BaseTestActivity : BaseActivity() {
             testDescription = testDescription,
             remainingSeconds = localRemainingSeconds,
             onPass = { handleTestResult(true) },
-            onFail = { handleTestResult(false) }
+            onFail = { handleTestResult(false) },
+            passEnabled = passButtonEnabled
         )
-
-        // 超时对话框
-        if (localShowTimeoutDialog) {
-            TimeoutDialog(
-                remainingSeconds = localRemainingSeconds,
-                onContinueWait = {
-                    remainingSeconds = timeoutSeconds
-                    showTimeoutDialog = false
-                    localShowTimeoutDialog = false
-                    startCountdown()
-                },
-                onMarkFailed = {
-                    handleTestResult(false)
-                },
-                onSkip = {
-                    handleTestResult(false)
-                }
-            )
-        }
 
         // 权限缺失对话框
         if (showPermissionDialog) {
@@ -177,13 +155,19 @@ abstract class BaseTestActivity : BaseActivity() {
             override fun run() {
                 remainingSeconds--
                 if (remainingSeconds <= 0) {
-                    showTimeoutDialog = true
+                    // 超时直接设置FAIL，不弹框
+                    handleTestResult(false)
                 } else {
                     handler.postDelayed(this, 1000)
                 }
             }
         }
         handler.post(countdownRunnable!!)
+    }
+
+    /** 启用PASS按钮（测试条件满足时调用） */
+    protected fun enablePassButton() {
+        passButtonEnabled = true
     }
 
     /** 停止倒计时 */
