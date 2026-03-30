@@ -3,9 +3,12 @@ package com.mxj.mmitest.ui.testitems
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.lifecycle.lifecycleScope
+import com.mxj.mmitest.data.repository.TestRepository
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * SIM卡测试Activity
@@ -13,10 +16,14 @@ import kotlinx.coroutines.delay
 class SimTestActivity : BaseActivity() {
 
     private val testName = "SIM卡测试"
+    private val testItemId = 1
     private val timeoutSeconds = 15
+
+    private lateinit var repository: TestRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        repository = TestRepository(this)
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
@@ -29,8 +36,8 @@ class SimTestActivity : BaseActivity() {
                         "2. 检查信号强度\n" +
                         "3. 点击PASS或FAIL按钮",
                 remainingSeconds = remainingSeconds,
-                onPass = { finish() },
-                onFail = { finish() }
+                onPass = { saveAndFinish(true) },
+                onFail = { saveAndFinish(false) }
             )
 
             // 倒计时逻辑 - 超时直接finish，不弹框
@@ -39,9 +46,24 @@ class SimTestActivity : BaseActivity() {
                     delay(1000)
                     remainingSeconds--
                 }
-                // 超时自动结束
-                finish()
+                // 超时自动结束，标记为FAIL
+                saveAndFinish(false)
             }
+        }
+    }
+
+    private fun saveAndFinish(passed: Boolean) {
+        lifecycleScope.launch {
+            repository.saveSingleTestResult(
+                testItemId = testItemId,
+                testItemName = testName,
+                passed = passed,
+                deviceId = android.provider.Settings.Secure.getString(
+                    contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                ) ?: android.os.Build.MODEL
+            )
+            finish()
         }
     }
 }

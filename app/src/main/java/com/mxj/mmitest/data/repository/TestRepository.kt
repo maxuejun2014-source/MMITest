@@ -206,4 +206,44 @@ class TestRepository(context: Context) {
             timeoutReason = timeoutReason
         )
     }
+
+    /**
+     * 保存单项测试结果（不创建会话）
+     * 使用特殊的sessionId "single_test" 来标识单项测试
+     */
+    suspend fun saveSingleTestResult(
+        testItemId: Int,
+        testItemName: String,
+        passed: Boolean,
+        deviceId: String
+    ): Long {
+        val resultEntity = TestResultEntity(
+            testSessionId = "single_test",
+            testItemId = testItemId,
+            testItemName = testItemName,
+            result = if (passed) "PASS" else "FAIL",
+            timestamp = System.currentTimeMillis(),
+            deviceId = deviceId,
+            deviceModel = android.os.Build.MODEL,
+            deviceManufacturer = android.os.Build.MANUFACTURER
+        )
+        return testResultDao.insert(resultEntity)
+    }
+
+    /**
+     * 获取所有测试项的最新结果（按测试项ID分组）
+     */
+    suspend fun getLatestResultsForAllTestItems(): Map<Int, TestResultEntity> {
+        val allResults = testResultDao.getAll()
+        return allResults
+            .groupBy { it.testItemId }
+            .mapValues { it.value.maxByOrNull { r -> r.timestamp }!! }
+    }
+
+    /**
+     * 获取指定测试项的最新结果
+     */
+    suspend fun getLatestResultForTestItem(testItemId: Int): TestResultEntity? {
+        return testResultDao.getByTestItemId(testItemId).firstOrNull()
+    }
 }

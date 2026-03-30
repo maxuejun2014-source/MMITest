@@ -13,20 +13,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mxj.mmitest.config.TestConfig
 import com.mxj.mmitest.ui.base.BaseActivity
-
-/**
- * 测试状态
- */
-enum class TestStatus {
-    NOT_TESTED,
-    PASSED,
-    FAILED
-}
 
 /**
  * 单项测试选择界面Activity
@@ -39,6 +33,21 @@ class SingleTestActivity : BaseActivity() {
 
         setContent {
             val viewModel: SingleTestViewModel = viewModel()
+
+            // 监听生命周期，在onResume时刷新状态
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    if (event == Lifecycle.Event.ON_RESUME) {
+                        viewModel.loadTestStatuses()
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                }
+            }
+
             SingleTestScreen(
                 viewModel = viewModel,
                 onTestItemClick = { testItem ->
@@ -72,6 +81,8 @@ fun SingleTestScreen(
     onTestItemClick: (TestConfig.TestItem) -> Unit,
     onBackClick: () -> Unit
 ) {
+    val testItemStatuses by viewModel.testItemStatuses.collectAsState()
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,9 +113,10 @@ fun SingleTestScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 items(viewModel.testItems) { testItem ->
+                    val status = testItemStatuses[testItem.id] ?: TestStatus.NOT_TESTED
                     TestItemRow(
                         testItem = testItem,
-                        status = TestStatus.NOT_TESTED, // 默认未测试
+                        status = status,
                         onClick = { onTestItemClick(testItem) }
                     )
                 }
@@ -159,6 +171,7 @@ private fun TestItemRow(
                     TestStatus.NOT_TESTED -> "NOT TESTED"
                     TestStatus.PASSED -> "PASSED"
                     TestStatus.FAILED -> "FAILED"
+                    else -> "NOT TESTED"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,

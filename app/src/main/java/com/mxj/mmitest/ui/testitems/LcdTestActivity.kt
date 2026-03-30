@@ -9,9 +9,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import com.mxj.mmitest.data.repository.TestRepository
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestResultButtons
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * LCD测试Activity
@@ -21,6 +24,8 @@ class LcdTestActivity : BaseActivity() {
 
     private val testName = "LCD测试"
     private val timeoutSeconds = 60
+    private val testItemId = 5
+    private lateinit var repository: TestRepository
     private val colors = listOf(
         Color.Red, Color.Green, Color.Blue, Color.White, Color.Black
     )
@@ -28,6 +33,7 @@ class LcdTestActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        repository = TestRepository(this)
         setContent {
             var currentColorIndex by remember { mutableStateOf(0) }
             var remainingSeconds by remember { mutableStateOf(timeoutSeconds) }
@@ -65,8 +71,8 @@ class LcdTestActivity : BaseActivity() {
                     }
 
                     TestResultButtons(
-                        onPass = { finish() },
-                        onFail = { finish() }
+                        onPass = { saveAndFinish(true) },
+                        onFail = { saveAndFinish(false) }
                     )
                 }
             }
@@ -81,7 +87,24 @@ class LcdTestActivity : BaseActivity() {
                     if (i == 0) break
                     delay(1000)
                 }
+                // 超时自动结束
+                saveAndFinish(false)
             }
+        }
+    }
+
+    private fun saveAndFinish(passed: Boolean) {
+        lifecycleScope.launch {
+            repository.saveSingleTestResult(
+                testItemId = testItemId,
+                testItemName = testName,
+                passed = passed,
+                deviceId = android.provider.Settings.Secure.getString(
+                    contentResolver,
+                    android.provider.Settings.Secure.ANDROID_ID
+                ) ?: android.os.Build.MODEL
+            )
+            finish()
         }
     }
 }

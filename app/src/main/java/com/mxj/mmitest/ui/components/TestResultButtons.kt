@@ -151,7 +151,7 @@ private fun LongPressButton(
 
 /**
  * 简单单击按钮组件（无长按要求）
- * FAIL按钮使用此组件
+ * FAIL按钮使用此组件 - 单击即触发
  */
 @Composable
 private fun SimpleClickButton(
@@ -160,28 +160,20 @@ private fun SimpleClickButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier.pointerInput(Unit) {
-            detectTapGestures(
-                onTap = { onClick() }
-            )
-        }
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = backgroundColor
+        ),
+        modifier = modifier,
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 0.dp,
+            pressedElevation = 0.dp
+        )
     ) {
-        Button(
-            onClick = { },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = backgroundColor
-            ),
-            modifier = Modifier.fillMaxSize(),
-            enabled = false,
-            elevation = ButtonDefaults.buttonElevation(
-                disabledElevation = 0.dp
-            )
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
+        Text(
+            text = text,
+            style = MaterialTheme.typography.headlineMedium
+        )
     }
 }
