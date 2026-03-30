@@ -105,13 +105,28 @@ class BacklightTestActivity : BaseActivity() {
                 }
             )
 
+            // 亮度平滑过渡控制
+            var brightnessDirection by remember { mutableIntStateOf(1) } // 1=增加，-1=减少
+
             LaunchedEffect(currentBrightness) {
                 val params = window.attributes
                 params.screenBrightness = currentBrightness
                 window.attributes = params
+            }
 
-                delay(2000)
-                currentBrightness = if (currentBrightness < 0.5f) 1.0f else 0.1f
+            LaunchedEffect(Unit) {
+                while (remainingSeconds > 0) {
+                    // 亮度平滑过渡
+                    val step = 0.02f * brightnessDirection
+                    currentBrightness = (currentBrightness + step).coerceIn(0.1f, 1.0f)
+
+                    // 到达边界时反转方向
+                    if (currentBrightness >= 1.0f || currentBrightness <= 0.1f) {
+                        brightnessDirection = -brightnessDirection
+                    }
+
+                    delay(30)
+                }
             }
 
             LaunchedEffect(Unit) {

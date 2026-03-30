@@ -1,26 +1,28 @@
 package com.mxj.mmitest.ui.testitems
 
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.StatFs
+import android.os.storage.StorageManager
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.mxj.mmitest.data.repository.TestRepository
 import com.mxj.mmitest.ui.base.BaseActivity
 import com.mxj.mmitest.ui.components.TestItemScreen
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * 存储测试Activity
@@ -58,17 +60,40 @@ class StorageTestActivity : BaseActivity() {
         }
     }
 
+    // 检测可移动SD卡
+    private fun getRemovableSdCardPath(): String? {
+        val storageManager = getSystemService(Context.STORAGE_SERVICE) as StorageManager
+        try {
+            val storageVolumes = storageManager.javaClass.getMethod("getVolumeList").invoke(storageManager) as Array<*>
+            for (volume in storageVolumes) {
+                volume ?: continue
+                val isRemovableField = volume.javaClass.getField("isRemovable") ?: continue
+                val isRemovable = isRemovableField.getBoolean(volume)
+                val stateMethod = volume.javaClass.getMethod("getState") ?: continue
+                val state = stateMethod.invoke(volume) as String
+                val pathMethod = volume.javaClass.getMethod("getPath") ?: continue
+                val path = pathMethod.invoke(volume) as String
+
+                if (isRemovable && state == Environment.MEDIA_MOUNTED) {
+                    return path
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         repository = TestRepository(this)
 
         // 内部存储信息
         val internalStorage = getStorageInfo(Environment.getDataDirectory().path)
-        // SD卡信息（如果存在）
-        val hasSdCard = Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
-        val sdCardStorage = if (hasSdCard) {
-            getStorageInfo(Environment.getExternalStorageDirectory().path)
-        } else null
+
+        // 外插SD卡信息（可移动存储）
+        val removableSdCardPath = getRemovableSdCardPath()
+        val sdCardStorage = removableSdCardPath?.let { getStorageInfo(it) }
 
         setContent {
             var remainingSeconds by remember { mutableIntStateOf(timeoutSeconds) }
@@ -110,14 +135,14 @@ class StorageTestActivity : BaseActivity() {
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // SD卡
+                        // SD卡（可移动存储）
                         Text(
-                            text = "SD卡",
+                            text = "SD卡（外置）",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 8.dp)
                         )
-                        if (hasSdCard && sdCardStorage != null) {
+                        if (removableSdCardPath != null && sdCardStorage != null) {
                             val (used, total) = sdCardStorage
                             StorageInfoRow(
                                 used = used,
@@ -126,7 +151,7 @@ class StorageTestActivity : BaseActivity() {
                             )
                         } else {
                             Text(
-                                text = "未检测到SD卡或SD卡不可用",
+                                text = "未检测到外置SD卡",
                                 color = Color.Gray,
                                 style = MaterialTheme.typography.bodyMedium
                             )
