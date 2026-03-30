@@ -8,9 +8,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -18,7 +16,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.mxj.mmitest.data.repository.TestRepository
@@ -35,6 +32,11 @@ class TpTestActivity : BaseActivity() {
     // 网格配置（参考MTK原厂代码）
     private val YCOUNT = 24 // 横向网格数（行数）
     private val XCOUNT = 15 // 纵向网格数（列数）
+
+    // 颜色配置
+    private val gridLineColor = Color.Black       // 网格线颜色（黑色）
+    private val gridFillColor = Color(0xFFFFC107)   // 格子填充颜色（黄色）
+    private val touchPathColor = Color.Green        // 划线路径颜色（绿色）
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -107,7 +109,7 @@ class TpTestActivity : BaseActivity() {
                     val stepX = canvasWidth / XCOUNT
                     val stepY = canvasHeight / YCOUNT
 
-                    // 绘制网格线（只有需要检测的线）
+                    // 绘制网格线和填充
                     for (i in 0 until YCOUNT) {
                         for (j in 0 until XCOUNT) {
                             if (isNeedCheck(i, j)) {
@@ -116,23 +118,31 @@ class TpTestActivity : BaseActivity() {
                                 val right = left + stepX - 1
                                 val bottom = top + stepY - 1
 
-                                // 填充颜色：已绘制=绿色，未绘制=白色（边框为黑色）
+                                // 已填充的格子显示黄色
                                 if (drawnGrid[i][j]) {
                                     drawRect(
-                                        color = Color.Green,
+                                        color = gridFillColor,
                                         topLeft = Offset(left, top),
                                         size = Size(right - left, bottom - top)
                                     )
                                 }
+
+                                // 绘制黑色边框
+                                drawRect(
+                                    color = gridLineColor,
+                                    topLeft = Offset(left, top),
+                                    size = Size(right - left, bottom - top),
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                                )
                             }
                         }
                     }
 
-                    // 绘制触摸路径
+                    // 绘制触摸路径（绿色虚线）
                     if (touchPath.isNotEmpty()) {
                         for (i in 0 until touchPath.size - 1) {
                             drawLine(
-                                color = Color.Green,
+                                color = touchPathColor,
                                 start = touchPath[i],
                                 end = touchPath[i + 1],
                                 strokeWidth = 6.dp.toPx(),
