@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="@android:color/white">
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="32dp"/>
+
+    <!-- 标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="手机工厂测试"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="#2196F3"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MMITest"
+        android:textSize="20sp"
+        android:textColor="#666666"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- 测试项数量 -->
+    <TextView
+        android:id="@+id/tv_test_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="共 0/0 项测试已启用"
+        android:textSize="18sp"
+        android:textColor="@android:color/darker_gray"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp"
+        android:background="@android:color/white"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="24dp"/>
+
+    <!-- 自动测试按钮 -->
+    <Button
+        android:id="@+id/btn_auto_test"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="自动测试"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#2196F3"
+        android:paddingVertical="20dp"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="12dp"/>
+
+    <!-- 单项测试按钮 -->
+    <Button
+        android:id="@+id/btn_single_test"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="单项测试"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#4CAF50"
+        android:paddingVertical="20dp"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="12dp"/>
+
+    <!-- 测试结果按钮 -->
+    <Button
+        android:id="@+id/btn_result"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="测试结果"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#FF9800"
+        android:paddingVertical="20dp"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="12dp"/>
+
+    <!-- 退出按钮 -->
+    <Button
+        android:id="@+id/btn_exit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="退出"
+        android:textSize="18sp"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#F44336"
+        android:paddingVertical="20dp"/>
+
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <!-- 版本信息 -->
+    <TextView
+        android:id="@+id/tv_version"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="版本 1.0.0"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"
+        android:layout_marginBottom="16dp"/>
+
+</LinearLayout>
