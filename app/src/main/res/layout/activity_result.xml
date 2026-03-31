@@ -56,11 +56,13 @@
             android:orientation="vertical">
 
             <TabWidget
+                android:id="@android:id/tabs"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="#FFF3E0"/>
 
             <FrameLayout
+                android:id="@android:id/tabcontent"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1">
