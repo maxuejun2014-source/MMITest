@@ -132,7 +132,7 @@ class TpTestActivity : BaseActivity() {
                                     color = gridLineColor,
                                     topLeft = Offset(left, top),
                                     size = Size(right - left, bottom - top),
-                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx())
                                 )
                             }
                         }
