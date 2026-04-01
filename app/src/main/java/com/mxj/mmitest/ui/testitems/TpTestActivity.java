@@ -41,13 +41,12 @@ public class TpTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        tpTestView = new TpTestView(this);
+        setContentView(tpTestView);
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         countdownHandler = new Handler(Looper.getMainLooper());
         remainingSeconds = TIMEOUT_SECONDS;
-
-        tpTestView = new TpTestView(this);
-        setContentView(tpTestView);
 
         startCountdown();
     }

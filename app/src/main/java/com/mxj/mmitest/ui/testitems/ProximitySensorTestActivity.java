@@ -26,12 +26,11 @@ public class ProximitySensorTestActivity extends BaseTestActivity implements Sen
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
-
-        setupContentView();
     }
 
     private void setupContentView() {

@@ -39,11 +39,11 @@ public class GpsTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         mainHandler = new Handler(Looper.getMainLooper());
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        setupContentView();
     }
 
     private void setupContentView() {

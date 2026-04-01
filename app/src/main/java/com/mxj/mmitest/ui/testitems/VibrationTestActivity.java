@@ -22,11 +22,10 @@ public class VibrationTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {

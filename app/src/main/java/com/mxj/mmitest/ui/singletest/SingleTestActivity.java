@@ -122,14 +122,7 @@ public class SingleTestActivity extends BaseActivity {
                 tvStatus.setTextColor(0xFF9E9E9E);
             }
 
-            convertView.setOnClickListener(v -> {
-                new AlertDialog.Builder(SingleTestActivity.this)
-                    .setTitle(item.getName())
-                    .setMessage("是否开始 " + item.getName() + "？")
-                    .setPositiveButton("开始", (d, w) -> startTest(item))
-                    .setNegativeButton("取消", null)
-                    .show();
-            });
+            convertView.setOnClickListener(v -> startTest(item));
 
             return convertView;
         }

@@ -53,11 +53,10 @@ public class FrontCameraTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         mainHandler = new Handler(Looper.getMainLooper());
-
-        setupContentView();
     }
 
     private void setupContentView() {

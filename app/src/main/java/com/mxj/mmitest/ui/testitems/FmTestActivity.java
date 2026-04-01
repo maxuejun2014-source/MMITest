@@ -20,13 +20,12 @@ public class FmTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
 
         // FM需要硬件支持，这里简化处理
         isFmAvailable = true;
-
-        setupContentView();
     }
 
     private void setupContentView() {

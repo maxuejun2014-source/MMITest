@@ -47,14 +47,13 @@ public class WifiTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         mainHandler = new Handler(Looper.getMainLooper());
 
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {

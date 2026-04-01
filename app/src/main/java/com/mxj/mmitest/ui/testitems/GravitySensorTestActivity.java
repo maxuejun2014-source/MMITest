@@ -25,12 +25,11 @@ public class GravitySensorTestActivity extends BaseTestActivity implements Senso
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-
-        setupContentView();
     }
 
     private void setupContentView() {

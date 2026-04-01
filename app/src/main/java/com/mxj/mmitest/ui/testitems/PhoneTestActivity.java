@@ -35,13 +35,12 @@ public class PhoneTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
 
         telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         subscriptionManager = (SubscriptionManager) getSystemService(Context.TELEPHONY_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {

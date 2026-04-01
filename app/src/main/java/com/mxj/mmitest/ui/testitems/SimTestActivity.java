@@ -21,11 +21,12 @@ public class SimTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
 
         setupContentView();
+
+        super.onCreate(savedInstanceState);
     }
 
     private void setupContentView() {

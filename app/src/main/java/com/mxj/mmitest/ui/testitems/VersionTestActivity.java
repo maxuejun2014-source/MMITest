@@ -17,10 +17,9 @@ public class VersionTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
-
-        setupContentView();
     }
 
     private void setupContentView() {

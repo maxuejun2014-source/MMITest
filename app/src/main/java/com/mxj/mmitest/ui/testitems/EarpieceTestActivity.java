@@ -27,11 +27,10 @@ public class EarpieceTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {

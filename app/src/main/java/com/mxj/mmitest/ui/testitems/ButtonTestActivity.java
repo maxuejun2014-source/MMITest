@@ -23,6 +23,7 @@ public class ButtonTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
 
@@ -32,8 +33,6 @@ public class ButtonTestActivity extends BaseTestActivity {
         buttonStates.put(KeyEvent.KEYCODE_POWER, false);
         buttonStates.put(KeyEvent.KEYCODE_HOME, false);
         buttonStates.put(KeyEvent.KEYCODE_BACK, false);
-
-        setupContentView();
     }
 
     private void setupContentView() {

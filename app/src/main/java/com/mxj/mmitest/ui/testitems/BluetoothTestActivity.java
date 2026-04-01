@@ -49,13 +49,12 @@ public class BluetoothTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         mainHandler = new Handler(Looper.getMainLooper());
 
         bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {

@@ -22,11 +22,10 @@ public class OtgTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
         usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
-        setupContentView();
     }
 
     private void setupContentView() {
