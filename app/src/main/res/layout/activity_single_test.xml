@@ -3,47 +3,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:padding="16dp"
+    android:background="#FFFFFF">
 
-    <!-- 标题栏 -->
-    <LinearLayout
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="16dp"
-        android:background="#2196F3">
+        android:text="单项测试 (Manual Test)"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginBottom="20dp"
+        android:textColor="#333333"/>
 
-        <Button
-            android:id="@+id/btn_back"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="返回"
-            android:textColor="@android:color/white"
-            android:backgroundTint="#1976D2"/>
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="单项测试"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/white"
-            android:gravity="center"/>
-
-        <View
-            android:layout_width="80dp"
-            android:layout_height="1dp"/>
-    </LinearLayout>
-
-    <!-- 测试列表 -->
     <ListView
         android:id="@+id/list_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:divider="#E0E0E0"
+        android:divider="@android:color/darker_gray"
         android:dividerHeight="1dp"/>
+
+    <Button
+        android:id="@+id/btn_back"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="返回主页"
+        android:textSize="18sp"
+        android:layout_marginTop="10dp"/>
 
 </LinearLayout>

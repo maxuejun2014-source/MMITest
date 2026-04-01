@@ -100,27 +100,25 @@ public class SingleTestActivity extends BaseActivity {
             }
 
             TestConfig.TestItem item = getItem(position);
-            TextView tvName = convertView.findViewById(R.id.tv_name);
-            TextView tvDesc = convertView.findViewById(R.id.tv_description);
-            TextView tvStatus = convertView.findViewById(R.id.tv_status);
+            TextView tvName = convertView.findViewById(R.id.test_name);
+            TextView tvStatus = convertView.findViewById(R.id.test_status);
 
             tvName.setText(item.getName());
-            tvDesc.setText(item.getDescription());
 
             TestHistoryStore.TestStatus status = statuses.get(item.getId());
             if (status != null && status.result != null) {
                 if (status.isPassed()) {
-                    tvStatus.setText("PASS");
+                    tvStatus.setText("✅ PASS");
                     tvStatus.setTextColor(0xFF4CAF50);
                 } else if (status.isFailed()) {
-                    tvStatus.setText("FAIL");
+                    tvStatus.setText("❌ FAIL");
                     tvStatus.setTextColor(0xFFF44336);
                 } else {
-                    tvStatus.setText(status.result);
+                    tvStatus.setText("⚪ " + status.result);
                     tvStatus.setTextColor(0xFF9E9E9E);
                 }
             } else {
-                tvStatus.setText("未测试");
+                tvStatus.setText("⚪ 未测试");
                 tvStatus.setTextColor(0xFF9E9E9E);
             }
 
