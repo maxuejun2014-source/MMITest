@@ -240,8 +240,10 @@ public abstract class BaseTestActivity extends BaseActivity {
      */
     protected void setPassEnabled(boolean enabled) {
         runOnUiThread(() -> {
-            btnPass.setEnabled(enabled);
-            btnPass.setAlpha(enabled ? 1.0f : 0.5f);
+            if (btnPass != null) {
+                btnPass.setEnabled(enabled);
+                btnPass.setAlpha(enabled ? 1.0f : 0.5f);
+            }
         });
     }
 
