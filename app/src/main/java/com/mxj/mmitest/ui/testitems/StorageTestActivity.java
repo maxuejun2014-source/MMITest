@@ -6,9 +6,8 @@ import android.os.StatFs;
 import android.text.Html;
 import android.text.format.Formatter;
 import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.core.content.ContextCompat;
 import com.mxj.mmitest.data.repository.TestRepository;
@@ -22,7 +21,13 @@ import java.io.File;
 public class StorageTestActivity extends BaseTestActivity {
 
     private TestRepository repository;
-    private TextView storageTextView;
+    private TextView internalStorageText;
+    private TextView sdCardText;
+    private ProgressBar internalProgressBar;
+    private ProgressBar sdCardProgressBar;
+    private TextView internalPercentText;
+    private TextView sdCardPercentText;
+    private boolean sdCardInserted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,53 +39,154 @@ public class StorageTestActivity extends BaseTestActivity {
     private void setupContentView() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(50, 50, 50, 50);
-        layout.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
+        layout.setPadding(40, 40, 40, 40);
+        layout.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        storageTextView = new TextView(this);
-        storageTextView.setTextSize(18);
-        storageTextView.setGravity(Gravity.CENTER_VERTICAL | Gravity.START);
-        storageTextView.setPadding(50, 50, 50, 50);
-        storageTextView.setLineSpacing(0, 1.2f);
+        // 内部存储标题
+        TextView internalTitle = new TextView(this);
+        internalTitle.setText("手机内部存储");
+        internalTitle.setTextSize(18);
+        internalTitle.setTextColor(0xFF333333);
+        internalTitle.setPadding(0, 20, 0, 10);
+        layout.addView(internalTitle);
 
-        StringBuilder sb = new StringBuilder();
+        // 内部存储进度条
+        internalProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        internalProgressBar.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 30));
+        layout.addView(internalProgressBar);
 
-        // 1. 内置存储
+        // 内部存储百分比和详情
+        internalPercentText = new TextView(this);
+        internalPercentText.setTextSize(14);
+        internalPercentText.setTextColor(0xFF666666);
+        internalPercentText.setPadding(0, 5, 0, 20);
+        layout.addView(internalPercentText);
+
+        // 内部存储详情
+        internalStorageText = new TextView(this);
+        internalStorageText.setTextSize(14);
+        internalStorageText.setTextColor(0xFF333333);
+        internalStorageText.setPadding(0, 0, 0, 30);
+        layout.addView(internalStorageText);
+
+        // SD卡标题
+        TextView sdTitle = new TextView(this);
+        sdTitle.setText("SD卡");
+        sdTitle.setTextSize(18);
+        sdTitle.setTextColor(0xFF333333);
+        sdTitle.setPadding(0, 20, 0, 10);
+        layout.addView(sdTitle);
+
+        // SD卡进度条
+        sdCardProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        sdCardProgressBar.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 30));
+        layout.addView(sdCardProgressBar);
+
+        // SD卡百分比和详情
+        sdCardPercentText = new TextView(this);
+        sdCardPercentText.setTextSize(14);
+        sdCardPercentText.setTextColor(0xFF666666);
+        sdCardPercentText.setPadding(0, 5, 0, 20);
+        layout.addView(sdCardPercentText);
+
+        // SD卡详情
+        sdCardText = new TextView(this);
+        sdCardText.setTextSize(14);
+        sdCardText.setTextColor(0xFF333333);
+        sdCardText.setPadding(0, 0, 0, 30);
+        layout.addView(sdCardText);
+
+        // 获取内部存储信息
         File internalDir = Environment.getExternalStorageDirectory();
-        sb.append("<b>[ 内置存储 ]</b><br/>");
-        sb.append(getStorageInfo(this, internalDir));
-        sb.append("<br/><br/>");
+        updateInternalStorageInfo(internalDir);
 
-        // 2. 外置 SD 卡
+        // 获取SD卡信息
         File sdCard = getPhysicalSdCard(this);
-        boolean sdPresent = sdCard != null;
-        sb.append("<b>[ 外置 SD 卡 ]</b><br/>");
-        if (sdPresent) {
-            sb.append("状态: 已插入<br/>");
-            sb.append(getStorageInfo(this, sdCard));
-        } else {
-            sb.append("状态: 未插入");
-        }
+        sdCardInserted = (sdCard != null && sdCard.exists());
+        updateSdCardInfo(sdCard);
 
-        storageTextView.setText(Html.fromHtml(sb.toString(), Html.FROM_HTML_MODE_COMPACT));
+        // SD卡未插入时PASS按钮不可用
+        setPassEnabled(sdCardInserted);
 
-        // 只要内置存储能读取即认为测试正常
-        boolean storageOk = internalDir != null && internalDir.exists();
-        if (sdPresent) {
-            setPassEnabled(true);
-        } else {
-            // 没有SD卡但内置存储正常也算PASS
-            setPassEnabled(storageOk);
-        }
-
-        layout.addView(storageTextView);
         setCustomContentView(layout);
+    }
+
+    private void updateInternalStorageInfo(File path) {
+        try {
+            if (path == null || !path.exists()) {
+                internalStorageText.setText("无法读取内部存储");
+                internalPercentText.setText("");
+                return;
+            }
+
+            StatFs stat = new StatFs(path.getPath());
+            long blockSize = stat.getBlockSizeLong();
+            long totalBlocks = stat.getBlockCountLong();
+            long availableBlocks = stat.getAvailableBlocksLong();
+
+            long total = totalBlocks * blockSize;
+            long available = availableBlocks * blockSize;
+            long used = total - available;
+            int percent = total > 0 ? (int) (used * 100 / total) : 0;
+
+            internalProgressBar.setMax(100);
+            internalProgressBar.setProgress(percent);
+            internalPercentText.setText(percent + "% 已使用");
+            internalStorageText.setText(Html.fromHtml(
+                    String.format("总容量: %s<br/>已使用: %s<br/>可用空间: %s",
+                            Formatter.formatFileSize(this, total),
+                            Formatter.formatFileSize(this, used),
+                            Formatter.formatFileSize(this, available)),
+                    Html.FROM_HTML_MODE_COMPACT));
+
+        } catch (Exception e) {
+            internalStorageText.setText("读取失败: " + e.getMessage());
+            internalPercentText.setText("");
+        }
+    }
+
+    private void updateSdCardInfo(File path) {
+        try {
+            if (path == null || !path.exists()) {
+                sdCardProgressBar.setMax(100);
+                sdCardProgressBar.setProgress(0);
+                sdCardPercentText.setText("未插入");
+                sdCardText.setText("请插入SD卡进行测试");
+                return;
+            }
+
+            StatFs stat = new StatFs(path.getPath());
+            long blockSize = stat.getBlockSizeLong();
+            long totalBlocks = stat.getBlockCountLong();
+            long availableBlocks = stat.getAvailableBlocksLong();
+
+            long total = totalBlocks * blockSize;
+            long available = availableBlocks * blockSize;
+            long used = total - available;
+            int percent = total > 0 ? (int) (used * 100 / total) : 0;
+
+            sdCardProgressBar.setMax(100);
+            sdCardProgressBar.setProgress(percent);
+            sdCardPercentText.setText(percent + "% 已使用");
+            sdCardText.setText(Html.fromHtml(
+                    String.format("总容量: %s<br/>已使用: %s<br/>可用空间: %s",
+                            Formatter.formatFileSize(this, total),
+                            Formatter.formatFileSize(this, used),
+                            Formatter.formatFileSize(this, available)),
+                    Html.FROM_HTML_MODE_COMPACT));
+
+        } catch (Exception e) {
+            sdCardProgressBar.setMax(100);
+            sdCardProgressBar.setProgress(0);
+            sdCardPercentText.setText("读取失败");
+            sdCardText.setText("读取失败: " + e.getMessage());
+        }
     }
 
     private File getPhysicalSdCard(android.content.Context context) {
         File[] dirs = ContextCompat.getExternalFilesDirs(context, null);
-        // dirs[0] 是内置存储的 Android/data/...
-        // 如果有外置 SD 卡，dirs[1] 通常是外置卡的路径
         if (dirs != null && dirs.length > 1 && dirs[1] != null) {
             String path = dirs[1].getAbsolutePath();
             if (path.contains("/Android/data")) {
@@ -91,32 +197,6 @@ public class StorageTestActivity extends BaseTestActivity {
         return null;
     }
 
-    private String getStorageInfo(android.content.Context context, File path) {
-        try {
-            if (path == null || !path.exists()) return "无法读取路径";
-            StatFs stat = new StatFs(path.getPath());
-            long blockSize = stat.getBlockSizeLong();
-            long totalBlocks = stat.getBlockCountLong();
-            long availableBlocks = stat.getAvailableBlocksLong();
-
-            long total = totalBlocks * blockSize;
-            long available = availableBlocks * blockSize;
-            long used = total - available;
-
-            int percent = total > 0 ? (int) (used * 100 / total) : 0;
-
-            return String.format("总容量: %s<br/>" +
-                    "已使用: %s (%d%%)<br/>" +
-                    "可用空间: %s",
-                    Formatter.formatFileSize(context, total),
-                    Formatter.formatFileSize(context, used),
-                    percent,
-                    Formatter.formatFileSize(context, available));
-        } catch (Exception e) {
-            return "读取存储信息失败: " + e.getMessage();
-        }
-    }
-
     @Override
     protected String getTestName() {
         return "存储测试";
@@ -124,7 +204,7 @@ public class StorageTestActivity extends BaseTestActivity {
 
     @Override
     protected String getTestDescription() {
-        return "检查内置存储和外置SD卡状态\n\n请检查存储信息是否正常显示";
+        return "检查手机内部存储和SD卡状态\n\n请检查存储信息是否正常显示";
     }
 
     @Override
@@ -147,7 +227,7 @@ public class StorageTestActivity extends BaseTestActivity {
 
     @Override
     protected boolean isPassEnabled() {
-        return true;
+        return sdCardInserted;
     }
 
     @Override
