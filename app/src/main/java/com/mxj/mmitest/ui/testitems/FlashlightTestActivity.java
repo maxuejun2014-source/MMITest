@@ -3,7 +3,9 @@ package com.mxj.mmitest.ui.testitems;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -21,19 +23,20 @@ import com.mxj.mmitest.ui.base.BaseTestActivity;
 import java.util.concurrent.ExecutionException;
 
 /**
- * 前置摄像头测试 - 使用CameraX
+ * 闪光灯测试 - 使用CameraX
  */
-public class FrontCameraTestActivity extends BaseTestActivity {
+public class FlashlightTestActivity extends BaseTestActivity {
 
-    private static final int TEST_ITEM_ID = 16;
-    private static final int TIMEOUT_SECONDS = 45;
+    private static final int TEST_ITEM_ID = 20;
 
     private TestRepository repository;
     private PreviewView mPreviewView;
     private ProcessCameraProvider mCameraProvider;
     private Camera mCamera;
+    private Button mBtnFlash;
     private TextView mTextInfo;
-    private boolean mCameraOpened = false;
+    private boolean mIsFlashOn = false;
+    private boolean mHasFlashUnit = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,7 +58,7 @@ public class FrontCameraTestActivity extends BaseTestActivity {
         root.addView(mPreviewView);
 
         mTextInfo = new TextView(this);
-        mTextInfo.setText("Front Camera Test");
+        mTextInfo.setText("Flashlight Test");
         mTextInfo.setTextColor(0xFFFFFFFF);
         mTextInfo.setTextSize(16);
         mTextInfo.setPadding(20, 20, 20, 20);
@@ -65,6 +68,15 @@ public class FrontCameraTestActivity extends BaseTestActivity {
         textParams.gravity = android.view.Gravity.TOP | android.view.Gravity.CENTER_HORIZONTAL;
         mTextInfo.setLayoutParams(textParams);
         root.addView(mTextInfo);
+
+        mBtnFlash = new Button(this);
+        mBtnFlash.setText("Toggle Flashlight");
+        FrameLayout.LayoutParams btnParams = new FrameLayout.LayoutParams(500, 150);
+        btnParams.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+        btnParams.bottomMargin = 50;
+        mBtnFlash.setLayoutParams(btnParams);
+        mBtnFlash.setOnClickListener(v -> toggleFlash());
+        root.addView(mBtnFlash);
 
         setContentView(root);
     }
@@ -114,14 +126,33 @@ public class FrontCameraTestActivity extends BaseTestActivity {
             mCameraProvider.unbindAll();
             mCamera = mCameraProvider.bindToLifecycle(
                     (LifecycleOwner) this,
-                    CameraSelector.DEFAULT_FRONT_CAMERA,
+                    CameraSelector.DEFAULT_BACK_CAMERA,
                     preview);
-            mCameraOpened = true;
-            mTextInfo.setText("Front Camera OK");
-            setPassEnabled(true);
+
+            mHasFlashUnit = mCamera.getCameraInfo().hasFlashUnit();
+            if (mHasFlashUnit) {
+                mTextInfo.setText("Flashlight Test - Tap button to toggle");
+                // Auto-on flashlight
+                mIsFlashOn = true;
+                mCamera.getCameraControl().enableTorch(true);
+                mBtnFlash.setText("Flash: ON");
+                setPassEnabled(true);
+            } else {
+                mTextInfo.setText("No flash unit available");
+                mBtnFlash.setEnabled(false);
+                setPassEnabled(false);
+            }
         } catch (Exception e) {
             mTextInfo.setText("Camera binding failed: " + e.getMessage());
             setPassEnabled(false);
+        }
+    }
+
+    private void toggleFlash() {
+        if (mCamera != null && mCamera.getCameraInfo().hasFlashUnit()) {
+            mIsFlashOn = !mIsFlashOn;
+            mCamera.getCameraControl().enableTorch(mIsFlashOn);
+            mBtnFlash.setText("Flash: " + (mIsFlashOn ? "ON" : "OFF"));
         }
     }
 
@@ -135,17 +166,17 @@ public class FrontCameraTestActivity extends BaseTestActivity {
 
     @Override
     protected String getTestName() {
-        return "前置摄像头测试";
+        return "闪光灯测试";
     }
 
     @Override
     protected String getTestDescription() {
-        return "请检查前置摄像头画面\n\n观察画面是否清晰正常";
+        return "闪光灯测试\n\n点击按钮切换闪光灯";
     }
 
     @Override
     protected int getTimeoutSeconds() {
-        return TIMEOUT_SECONDS;
+        return 30;
     }
 
     @Override
@@ -160,7 +191,7 @@ public class FrontCameraTestActivity extends BaseTestActivity {
 
     @Override
     protected boolean isPassEnabled() {
-        return mCameraOpened;
+        return mHasFlashUnit;
     }
 
     @Override

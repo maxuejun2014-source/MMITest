@@ -1,28 +1,25 @@
 package com.mxj.mmitest.ui.testitems;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
-import android.net.NetworkRequest;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
+import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import com.mxj.mmitest.data.repository.TestRepository;
 import com.mxj.mmitest.ui.base.BaseTestActivity;
+
 import java.util.List;
 
 /**
- * WiFi测试
- * 超时30秒，检测WiFi功能
+ * WiFi测试 - 扫描并显示WiFi网络
  */
 public class WifiTestActivity extends BaseTestActivity {
 
@@ -30,51 +27,78 @@ public class WifiTestActivity extends BaseTestActivity {
     private static final int TIMEOUT_SECONDS = 30;
 
     private TestRepository repository;
-    private LinearLayout contentLayout;
-    private TextView statusTextView;
+    private TextView mStatusView;
+    private WifiManager mWifiManager;
+    private boolean mIsReceiverRegistered = false;
 
-    private WifiManager wifiManager;
-    private ConnectivityManager connectivityManager;
-
-    private boolean isWifiEnabled = false;
-    private boolean isWifiConnected = false;
-    private String wifiSSID = "";
-    private int wifiSignalStrength = 0;
-    private int wifiLinkSpeed = 0;
-
-    private ConnectivityManager.NetworkCallback networkCallback;
-    private Handler mainHandler;
+    private BroadcastReceiver mWifiReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            List<ScanResult> results = mWifiManager.getScanResults();
+            if (results != null && !results.isEmpty()) {
+                mStatusView.setText("Wi-Fi Scan Success!\nFound " + results.size() + " networks.");
+                setPassEnabled(true);
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
-        mainHandler = new Handler(Looper.getMainLooper());
-
-        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        mWifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
     }
 
     private void setupContentView() {
-        contentLayout = new LinearLayout(this);
-        contentLayout.setOrientation(LinearLayout.VERTICAL);
-        contentLayout.setPadding(48, 32, 48, 32);
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setGravity(Gravity.CENTER);
+        layout.setPadding(40, 40, 40, 40);
 
-        TextView titleView = new TextView(this);
-        titleView.setText("WiFi测试");
-        titleView.setTextSize(24);
-        titleView.setTextColor(0xFF000000);
-        titleView.setPadding(0, 0, 0, 32);
-        contentLayout.addView(titleView);
+        mStatusView = new TextView(this);
+        mStatusView.setTextSize(20);
+        mStatusView.setGravity(Gravity.CENTER);
+        mStatusView.setPadding(40, 40, 40, 40);
+        mStatusView.setText("Initializing Wi-Fi test...");
 
-        statusTextView = new TextView(this);
-        statusTextView.setText("正在检测WiFi...\n");
-        statusTextView.setTextSize(16);
-        statusTextView.setTextColor(0xFF333333);
-        contentLayout.addView(statusTextView);
+        layout.addView(mStatusView);
+        setCustomContentView(layout);
+    }
 
-        setContentView(contentLayout);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        doWifiScan();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (mIsReceiverRegistered) {
+            try {
+                unregisterReceiver(mWifiReceiver);
+            } catch (Exception e) {
+            }
+            mIsReceiverRegistered = false;
+        }
+    }
+
+    private void doWifiScan() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            mStatusView.setText("Permission required: Location\n\nPlease grant location permission for WiFi scan.");
+            setPassEnabled(false);
+            return;
+        }
+        if (mWifiManager != null && !mWifiManager.isWifiEnabled()) {
+            mWifiManager.setWifiEnabled(true);
+        }
+
+        IntentFilter filter = new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION);
+        registerReceiver(mWifiReceiver, filter);
+        mIsReceiverRegistered = true;
+        mWifiManager.startScan();
+        mStatusView.setText("Scanning Wi-Fi networks...");
     }
 
     @Override
@@ -84,7 +108,7 @@ public class WifiTestActivity extends BaseTestActivity {
 
     @Override
     protected String getTestDescription() {
-        return "请检查WiFi功能\n\n操作步骤：\n1. 确认WiFi已开启\n2. 检查是否能扫描到WiFi网络\n3. 点击PASS或FAIL按钮";
+        return "WiFi扫描测试\n\n检查是否能扫描到WiFi网络";
     }
 
     @Override
@@ -95,115 +119,20 @@ public class WifiTestActivity extends BaseTestActivity {
     @Override
     protected String[] getRequiredPermissions() {
         return new String[]{
-            Manifest.permission.ACCESS_WIFI_STATE,
-            Manifest.permission.CHANGE_WIFI_STATE
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.CHANGE_WIFI_STATE,
+                Manifest.permission.ACCESS_FINE_LOCATION
         };
     }
 
     @Override
     protected void onTestExecute() {
-        checkWifiStatus();
-    }
-
-    private void checkWifiStatus() {
-        try {
-            // 检查WiFi状态
-            isWifiEnabled = wifiManager.isWifiEnabled();
-            updateStatus("WiFi状态: " + (isWifiEnabled ? "已开启" : "已关闭") + "\n");
-
-            if (!isWifiEnabled) {
-                updateStatus("\n请开启WiFi后重试\n");
-                setPassEnabled(false);
-                return;
-            }
-
-            // 获取WiFi连接信息
-            WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-            if (wifiInfo != null) {
-                wifiSSID = wifiInfo.getSSID();
-                if (wifiSSID != null) {
-                    // 移除SSID两端的引号
-                    if (wifiSSID.startsWith("\"") && wifiSSID.endsWith("\"")) {
-                        wifiSSID = wifiSSID.substring(1, wifiSSID.length() - 1);
-                    }
-                }
-
-                wifiSignalStrength = WifiManager.calculateSignalLevel(wifiInfo.getRssi(), 5);
-                wifiLinkSpeed = wifiInfo.getLinkSpeed();
-
-                updateStatus("当前网络: " + wifiSSID + "\n");
-                updateStatus("信号强度: " + getSignalLevelString(wifiSignalStrength) + "\n");
-                updateStatus("连接速度: " + wifiLinkSpeed + " Mbps\n");
-
-                if (!"<unknown ssid>".equals(wifiSSID) && wifiSSID.length() > 0) {
-                    isWifiConnected = true;
-                }
-            }
-
-            // 扫描周围的WiFi网络
-            updateStatus("\n正在扫描WiFi网络...\n");
-
-            @SuppressWarnings("unchecked")
-            List<ScanResult> scanResults = wifiManager.getScanResults();
-            if (scanResults != null && !scanResults.isEmpty()) {
-                updateStatus("扫描到 " + scanResults.size() + " 个WiFi网络:\n");
-                int count = 0;
-                for (ScanResult result : scanResults) {
-                    if (count >= 5) {
-                        updateStatus("... 还有 " + (scanResults.size() - 5) + " 个网络\n");
-                        break;
-                    }
-                    String scanSSID = result.SSID;
-                    if (scanSSID == null || scanSSID.isEmpty()) {
-                        scanSSID = "<隐藏网络>";
-                    }
-                    int signal = WifiManager.calculateSignalLevel(result.level, 5);
-                    updateStatus("  - " + scanSSID + " (" + getSignalLevelString(signal) + ")\n");
-                    count++;
-                }
-            } else {
-                updateStatus("未扫描到WiFi网络\n");
-            }
-
-            updateStatus("\n检测完成");
-            updatePassButtonState();
-
-        } catch (Exception e) {
-            updateStatus("WiFi检测失败: " + e.getMessage() + "\n");
-            setPassEnabled(false);
-        }
-    }
-
-    private String getSignalLevelString(int level) {
-        switch (level) {
-            case 0:
-                return "无信号";
-            case 1:
-                return "弱";
-            case 2:
-                return "较弱";
-            case 3:
-                return "中等";
-            case 4:
-                return "强";
-            default:
-                return "未知";
-        }
-    }
-
-    private void updateStatus(String text) {
-        if (statusTextView != null) {
-            statusTextView.append(text);
-        }
-    }
-
-    private void updatePassButtonState() {
-        setPassEnabled(isWifiEnabled);
+        // 测试执行
     }
 
     @Override
     protected boolean isPassEnabled() {
-        return isWifiEnabled;
+        return false; // 由WiFi扫描结果决定
     }
 
     @Override
@@ -214,5 +143,12 @@ public class WifiTestActivity extends BaseTestActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (mIsReceiverRegistered) {
+            try {
+                unregisterReceiver(mWifiReceiver);
+            } catch (Exception e) {
+            }
+            mIsReceiverRegistered = false;
+        }
     }
 }

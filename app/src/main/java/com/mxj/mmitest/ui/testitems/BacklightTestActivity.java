@@ -1,24 +1,62 @@
 package com.mxj.mmitest.ui.testitems;
 
+import android.animation.ValueAnimator;
+import android.app.Activity;
 import android.os.Bundle;
-import android.provider.Settings;
-import android.view.Gravity;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
-import android.widget.Button;
+import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import com.mxj.mmitest.data.repository.TestRepository;
 import com.mxj.mmitest.ui.base.BaseTestActivity;
 
 /**
- * 背光测试
+ * 背光测试 - 自动亮度循环 10%-100%
  */
 public class BacklightTestActivity extends BaseTestActivity {
 
     private TestRepository repository;
-    private int currentLevel = 0;
-    private int[] brightnessLevels = {0, 50, 100, 150, 200, 255};
-    private TextView levelView;
+    private SeekBar mSeekBar;
+    private TextView mBrightnessText;
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private boolean mIsAutoCycling = true;
+    private int mAutoBrightness = 10;
+    private boolean mIncreasing = true;
+
+    // 自动亮度循环任务
+    private final Runnable mAutoCycleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (!mIsAutoCycling) return;
+
+            if (mIncreasing) {
+                mAutoBrightness += 2;
+                if (mAutoBrightness >= 100) mIncreasing = false;
+            } else {
+                mAutoBrightness -= 2;
+                if (mAutoBrightness <= 10) mIncreasing = true;
+            }
+
+            updateBrightness(mAutoBrightness);
+            if (mSeekBar != null) {
+                mSeekBar.setProgress(mAutoBrightness);
+            }
+
+            mHandler.postDelayed(this, 50);
+        }
+    };
+
+    // 延迟启用PASS按钮任务
+    private final Runnable mEnablePassRunnable = new Runnable() {
+        @Override
+        public void run() {
+            setPassEnabled(true);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,68 +68,79 @@ public class BacklightTestActivity extends BaseTestActivity {
     private void setupContentView() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(48, 32, 48, 32);
-        layout.setGravity(Gravity.CENTER);
+        layout.setGravity(android.view.Gravity.CENTER);
+        layout.setPadding(60, 60, 60, 60);
 
-        TextView titleView = new TextView(this);
-        titleView.setText("背光测试");
-        titleView.setTextSize(20);
-        titleView.setTextColor(0xFF000000);
-        layout.addView(titleView);
+        TextView textView = new TextView(this);
+        textView.setText("背光自动循环测试 (10% - 100%)\n观察亮度自动循环变化:");
+        textView.setTextSize(18);
+        textView.setGravity(android.view.Gravity.CENTER);
+        textView.setPadding(0, 0, 0, 50);
+        layout.addView(textView);
 
-        TextView descView = new TextView(this);
-        descView.setText("\n点击按钮调节背光亮度\n\n检查背光是否正常");
-        descView.setTextSize(14);
-        descView.setTextColor(0xFF666666);
-        descView.setGravity(Gravity.CENTER);
-        layout.addView(descView);
+        mSeekBar = new SeekBar(this);
+        mSeekBar.setMax(100);
+        mSeekBar.setProgress(mAutoBrightness);
+        mSeekBar.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 200));
+        mSeekBar.setEnabled(false); // 用户不可点击，仅展示
 
-        levelView = new TextView(this);
-        levelView.setText("当前亮度: " + brightnessLevels[currentLevel]);
-        levelView.setTextSize(24);
-        levelView.setTextColor(0xFF333333);
-        levelView.setGravity(Gravity.CENTER);
-        layout.addView(levelView);
-
-        Button upBtn = new Button(this);
-        upBtn.setText("增加亮度");
-        upBtn.setOnClickListener(v -> {
-            if (currentLevel < brightnessLevels.length - 1) {
-                currentLevel++;
-                updateBrightness();
+        mSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mIsAutoCycling = false;
+                    updateBrightness(progress);
+                    setPassEnabled(true);
+                }
             }
+            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
-        layout.addView(upBtn);
 
-        Button downBtn = new Button(this);
-        downBtn.setText("降低亮度");
-        downBtn.setOnClickListener(v -> {
-            if (currentLevel > 0) {
-                currentLevel--;
-                updateBrightness();
-            }
-        });
-        layout.addView(downBtn);
+        layout.addView(mSeekBar);
 
-        TextView hintView = new TextView(this);
-        hintView.setText("\n请检查背光调节是否正常\n如有异常请点FAIL");
-        hintView.setTextSize(12);
-        hintView.setTextColor(0xFF999999);
-        hintView.setGravity(Gravity.CENTER);
-        layout.addView(hintView);
+        mBrightnessText = new TextView(this);
+        mBrightnessText.setText("亮度: 10%");
+        mBrightnessText.setTextSize(16);
+        mBrightnessText.setTextColor(0xFF666666);
+        mBrightnessText.setGravity(android.view.Gravity.CENTER);
+        mBrightnessText.setPadding(0, 20, 0, 0);
+        layout.addView(mBrightnessText);
 
         setCustomContentView(layout);
-        setPassEnabled(true);
     }
 
-    private void updateBrightness() {
-        levelView.setText("当前亮度: " + brightnessLevels[currentLevel]);
-        try {
-            Settings.System.putInt(getContentResolver(),
-                Settings.System.SCREEN_BRIGHTNESS, brightnessLevels[currentLevel]);
-        } catch (Exception e) {
-            e.printStackTrace();
+    /**
+     * 更新当前窗口的亮度
+     * @param brightnessPercent 亮度百分比 (0-100)
+     */
+    private void updateBrightness(int brightnessPercent) {
+        Activity activity = this;
+        WindowManager.LayoutParams lp = activity.getWindow().getAttributes();
+        lp.screenBrightness = brightnessPercent / 100.0f;
+        activity.getWindow().setAttributes(lp);
+        if (mBrightnessText != null) {
+            mBrightnessText.setText("亮度: " + brightnessPercent + "%");
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mIsAutoCycling = true;
+        mHandler.post(mAutoCycleRunnable);
+        mHandler.postDelayed(mEnablePassRunnable, 1000);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mIsAutoCycling = false;
+        mHandler.removeCallbacks(mAutoCycleRunnable);
+        mHandler.removeCallbacks(mEnablePassRunnable);
+        // 恢复默认亮度
+        updateBrightness(-1);
     }
 
     @Override
@@ -101,7 +150,7 @@ public class BacklightTestActivity extends BaseTestActivity {
 
     @Override
     protected String getTestDescription() {
-        return "测试背光调节功能\n\n操作步骤：\n1. 点击增加/降低亮度按钮\n2. 检查背光是否正常调节";
+        return "背光自动循环测试 (10%-100%)\n\n观察背光是否正常循环变化";
     }
 
     @Override
@@ -121,7 +170,7 @@ public class BacklightTestActivity extends BaseTestActivity {
 
     @Override
     protected boolean isPassEnabled() {
-        return true;
+        return false; // 延迟启用
     }
 
     @Override

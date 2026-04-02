@@ -166,6 +166,12 @@
             android:theme="@style/Theme.MMITest" />
 
         <activity
+            android:name=".ui.testitems.FlashlightTestActivity"
+            android:exported="false"
+            android:label="闪光灯测试"
+            android:theme="@style/Theme.MMITest" />
+
+        <activity
             android:name=".ui.testitems.PhoneTestActivity"
             android:exported="false"
             android:label="电话测试"
