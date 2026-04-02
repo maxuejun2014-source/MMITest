@@ -131,7 +131,8 @@ public abstract class BaseTestActivity extends BaseActivity {
                 if (allGranted) {
                     onPermissionsGranted();
                 } else {
-                    showPermissionDeniedDialog();
+                    // 权限被拒绝，继续执行测试
+                    onPermissionsGranted();
                 }
             }
         );
