@@ -31,9 +31,14 @@ public class StorageTestActivity extends BaseTestActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        setupContentView();
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
+    }
+
+    @Override
+    protected void onPermissionsGranted() {
+        // 权限授予后读取存储信息
+        readStorageInfo();
     }
 
     private void setupContentView() {
@@ -98,6 +103,10 @@ public class StorageTestActivity extends BaseTestActivity {
         sdCardText.setPadding(0, 0, 0, 30);
         layout.addView(sdCardText);
 
+        setCustomContentView(layout);
+    }
+
+    private void readStorageInfo() {
         // 获取内部存储信息
         File internalDir = Environment.getExternalStorageDirectory();
         updateInternalStorageInfo(internalDir);
@@ -109,8 +118,6 @@ public class StorageTestActivity extends BaseTestActivity {
 
         // SD卡未插入时PASS按钮不可用
         setPassEnabled(sdCardInserted);
-
-        setCustomContentView(layout);
     }
 
     private void updateInternalStorageInfo(File path) {
