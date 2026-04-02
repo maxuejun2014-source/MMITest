@@ -28,17 +28,21 @@ public class StorageTestActivity extends BaseTestActivity {
     private TextView internalPercentText;
     private TextView sdCardPercentText;
     private boolean sdCardInserted = false;
+    private boolean viewsInitialized = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         repository = TestRepository.getInstance(this);
+        setupContentView();
     }
 
     @Override
     protected void onPermissionsGranted() {
         // 权限授予后读取存储信息
-        readStorageInfo();
+        if (viewsInitialized) {
+            readStorageInfo();
+        }
     }
 
     private void setupContentView() {
@@ -104,9 +108,15 @@ public class StorageTestActivity extends BaseTestActivity {
         layout.addView(sdCardText);
 
         setCustomContentView(layout);
+        viewsInitialized = true;
+
+        // 如果权限已经授予，立即读取存储信息
+        readStorageInfo();
     }
 
     private void readStorageInfo() {
+        if (!viewsInitialized) return;
+
         // 获取内部存储信息
         File internalDir = Environment.getExternalStorageDirectory();
         updateInternalStorageInfo(internalDir);
